@@ -1,27 +1,19 @@
-## Updated Project Setup
-
-### How to Install
-1. Install dependencies:
-   ```bash
-   npm install
-   ```
+## Buy vs Invest Financial Simulator
 
 ### How to Run
-1. Start the website using `live-server` with a mount point:
+1. Start the website using `live-server`:
    ```bash
-   npx live-server --mount=/buy_or_rent:.
+   npx live-server
    ```
-2. Open your browser and navigate to `http://127.0.0.1:8080/buy_or_rent`.
+2. Open your browser and navigate to the URL shown in the terminal (usually `http://127.0.0.1:8080/`).
 
-### How to Build
-1. Bundle the project for deployment:
-   ```bash
-   npm run build
-   ```
-2. The bundled files will be available in the `dist` folder, ready for deployment.
+### Project Structure
+- `index.html`: Main simulator web app. All logic and UI are in this file.
+- No build step is required. You can edit and run directly.
 
-### How to run the dist
+### How to Deploy
+- Simply copy `index.html` to your web server or hosting platform.
 
-```
-npx live-server --mount=/buy_or_rent:dist
-```
+### Notes
+- All calculations and features are in the HTML file.
+- No dependencies or bundling required unless you add more tooling.
