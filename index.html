@@ -1,96 +1,294 @@
-<base href="/buy_or_rent/">
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>To Buy or To Rent</title>
-    <script src="node_modules/handsontable/dist/handsontable.full.min.js"></script>
-    <script src="node_modules/hyperformula/dist/hyperformula.full.min.js"></script>
-    <script src="node_modules/xlsx/dist/xlsx.full.min.js"></script>
-    <link rel="stylesheet" href="node_modules/handsontable/dist/handsontable.full.min.css">
+    <title>Buy vs Invest Financial Simulator</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .container { max-width: 900px; margin: auto; }
+        h1 { text-align: center; }
+        form { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px; }
+        label { font-weight: bold; }
+        input, select { width: 100%; padding: 6px; margin-top: 4px; }
+        .full-width { grid-column: 1 / span 2; }
+        table { width: 100%; border-collapse: collapse; margin-top: 30px; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: right; }
+        th { background: #f4f4f4; cursor: help; }
+        tr:hover { background: #e9f7ef; }
+        .scenario-list { margin-top: 20px; }
+        #plot { margin-top: 40px; }
+        fieldset { border: 1px solid #ccc; padding: 15px; }
+        legend { font-weight: bold; }
+    </style>
 </head>
 <body>
-    <div id="example-basic-multi-sheet-1"></div>
-    <button id="download-excel">Download Excel</button>
+<div class="container">
+    <h1>Buy vs Invest Financial Simulator</h1>
+    <form id="simForm" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px;">
+        <fieldset style="border:1px solid #ccc; padding:15px;">
+            <legend><b>Buying Scenario</b></legend>
+            <div>
+                <label for="housePrice">House Price (€)</label>
+                <input type="number" id="housePrice" required value="400000">
+            </div>
+            <div>
+                <label for="downPayment">Down Payment (€)</label>
+                <input type="number" id="downPayment" required value="80000">
+            </div>
+            <div>
+                <label for="loanTerm">Loan Term (years)</label>
+                <input type="number" id="loanTerm" required value="30">
+            </div>
+            <div>
+                <label for="monthlyBudget">Monthly Budget for Living & Rent/Loan (€)</label>
+                <input type="number" id="monthlyBudget" required value="2000">
+            </div>
+            <div>
+                <label for="notarisCost">Notaris Costs (% of house price)</label>
+                <input type="number" id="notarisCost" step="0.01" required value="1.5">
+            </div>
+            <div>
+                <label for="registrationCost">Registration Costs (% of house price)</label>
+                <input type="number" id="registrationCost" step="0.01" required value="2.0">
+            </div>
+            <div>
+                <label for="prepaymentPenalty">Prepayment Penalty (% of remaining loan)</label>
+                <input type="number" id="prepaymentPenalty" step="0.01" required value="1.0">
+            </div>
+            <div>
+                <label for="realEstateGrowth">Avg. Real Estate Growth (%/year)</label>
+                <input type="number" id="realEstateGrowth" step="0.01" required value="3.0">
+            </div>
+            <div>
+                <label for="maintenanceCost">Maintenance Costs (% of house price/year)</label>
+                <input type="number" id="maintenanceCost" step="0.01" required value="1.0">
+            </div>
+            <div>
+                <label for="bankRate">Bank Lending Rate (%/year)</label>
+                <input type="number" id="bankRate" step="0.01" required value="4.0">
+            </div>
+        </fieldset>
+        <fieldset style="border:1px solid #ccc; padding:15px;">
+            <legend><b>Investing Scenario</b></legend>
+            <div>
+                <label for="rentalCost">Monthly Rent (€)</label>
+                <input type="number" id="rentalCost" required value="1600">
+            </div>
+            <div>
+                <label for="investmentReturn">Avg. Investment Return (%/year)</label>
+                <input type="number" id="investmentReturn" step="0.01" required value="7.0">
+            </div>
+        </fieldset>
+        <div class="full-width">
+            <label for="scenarioName">Scenario Name</label>
+            <input type="text" id="scenarioName" required value="Default Scenario">
+        </div>
+        <div class="full-width">
+            <button type="submit">Simulate</button>
+        </div>
+    </form>
+    <div id="intermediateResults" style="margin-bottom:30px;"></div>
+    <div class="scenario-list">
+        <label for="savedScenarios">Load Scenario:</label>
+        <select id="savedScenarios"></select>
+        <button onclick="loadScenario()">Load</button>
+    </div>
+    <div id="results"></div>
+    <canvas id="plot" width="800" height="400"></canvas>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const scenarioStorageKey = 'buyVsInvestScenarios';
 
-    <script>
-        const excelFilePath = 'simulation.xlsx'; // Path to your Excel file
+function saveScenario(name, data) {
+    let scenarios = JSON.parse(localStorage.getItem(scenarioStorageKey) || '{}');
+    scenarios[name] = data;
+    localStorage.setItem(scenarioStorageKey, JSON.stringify(scenarios));
+    updateScenarioList();
+}
 
-        // Function to read the Excel file and extract data with formulas
-        async function readExcelFile(filePath) {
-            const response = await fetch(filePath);
-            const arrayBuffer = await response.arrayBuffer();
-            const data = new Uint8Array(arrayBuffer);
-            const workbook = XLSX.read(data, { type: 'array' });
-            console.log(workbook);
-            const sheetNames = workbook.SheetNames;
-            const sheetsData = sheetNames.map(sheetName => {
-                const worksheet = workbook.Sheets[sheetName];
-                const range = XLSX.utils.decode_range(worksheet['!ref']);
-                const formulaData = [];
+function updateScenarioList() {
+    let scenarios = JSON.parse(localStorage.getItem(scenarioStorageKey) || '{}');
+    let select = document.getElementById('savedScenarios');
+    select.innerHTML = '';
+    Object.keys(scenarios).forEach(name => {
+        let opt = document.createElement('option');
+        opt.value = name;
+        opt.textContent = name;
+        select.appendChild(opt);
+    });
+}
 
-                // Adjust the range to start at A1
-                const adjustedRange = {
-                    s: { r: 0, c: 0 },
-                    e: range.e
-                };
+function loadScenario() {
+    let select = document.getElementById('savedScenarios');
+    let name = select.value;
+    let scenarios = JSON.parse(localStorage.getItem(scenarioStorageKey) || '{}');
+    if (scenarios[name]) {
+        let d = scenarios[name].inputs;
+        document.getElementById('housePrice').value = d.housePrice;
+        document.getElementById('downPayment').value = d.downPayment;
+        document.getElementById('rentalCost').value = d.rentalCost;
+        document.getElementById('loanTerm').value = d.loanTerm;
+        document.getElementById('monthlyBudget').value = d.monthlyBudget;
+        document.getElementById('notarisCost').value = d.notarisCost;
+        document.getElementById('registrationCost').value = d.registrationCost;
+        document.getElementById('prepaymentPenalty').value = d.prepaymentPenalty;
+        document.getElementById('realEstateGrowth').value = d.realEstateGrowth;
+        document.getElementById('investmentReturn').value = d.investmentReturn;
+        document.getElementById('bankRate').value = d.bankRate;
+        document.getElementById('scenarioName').value = name;
+        document.getElementById('maintenanceCost').value = d.maintenanceCost;
+        showResults(scenarios[name]);
+    }
+}
 
-                for (let R = adjustedRange.s.r; R <= adjustedRange.e.r; ++R) {
-                    const row = [];
-                    for (let C = adjustedRange.s.c; C <= adjustedRange.e.c; ++C) {
-                        const cellAddress = { c: C, r: R };
-                        const cellRef = XLSX.utils.encode_cell(cellAddress);
-                        const cell = worksheet[cellRef];
-                        if (cell && cell.f) {
-                            row.push('=' + cell.f); // Prepend '=' to the formula
-                        } else if (cell) {
-                            row.push(cell.v || ''); // Ensure empty cells are included
-                        } else {
-                            row.push('');
-                        }
-                    }
-                    formulaData.push(row);
-                }
+function simulate(inputs) {
+    let years = inputs.loanTerm;
+    let buyWorth = [];
+    let investWorth = [];
+    let houseValue = inputs.housePrice;
+    let loan = inputs.housePrice - inputs.downPayment;
+    let notarisCost = inputs.housePrice * (inputs.notarisCost/100);
+    let registrationCost = inputs.housePrice * (inputs.registrationCost/100);
+    let totalCosts = inputs.downPayment + notarisCost + registrationCost;
+    let investCapital = totalCosts;
+    let monthlyLoanRate = (inputs.bankRate/100)/12;
+    let monthlyLoanPayment = loan * monthlyLoanRate / (1 - Math.pow(1 + monthlyLoanRate, -years*12));
+    let buyLoanBalance = loan;
+    let investBalance = investCapital;
+    // Year 0
+    buyWorth.push({ year: 0, value: houseValue - buyLoanBalance });
+    investWorth.push({ year: 0, value: investBalance });
+    for (let y = 1; y <= years; y++) {
+        houseValue *= (1 + inputs.realEstateGrowth/100);
+        let interest = buyLoanBalance * (inputs.bankRate/100);
+        let principal = Math.min(monthlyLoanPayment*12 - interest, buyLoanBalance);
+        buyLoanBalance -= principal;
+        // Prepayment penalty at end of loan
+        let penalty = (y === years) ? buyLoanBalance * (inputs.prepaymentPenalty/100) : 0;
+        // Maintenance cost
+        let maintenance = inputs.housePrice * (inputs.maintenanceCost/100);
+        // Net worth for buying: house value minus remaining loan, penalty, and maintenance
+        let buyNetWorth = houseValue - buyLoanBalance - penalty - maintenance * y;
+        // Net worth for investing: invest balance grows, add monthly savings
+        investBalance = investBalance * (1 + inputs.investmentReturn/100);
+        investBalance += (inputs.monthlyBudget - inputs.rentalCost) * 12;
+        let investNetWorth = investBalance;
+        buyWorth.push({ year: y, value: buyNetWorth });
+        investWorth.push({ year: y, value: investNetWorth });
+    }
+    return { buyWorth, investWorth, years, inputs };
+}
 
-                return formulaData;
-            });
-            return sheetsData;
-        }
+function showResults(data) {
+    let table = `<table><thead><tr>
+        <th title='Year of simulation'>Year</th>
+        <th title='Net worth if you bought the house'>Buy Net Worth (€)</th>
+        <th title='Net worth if you invested in S&P'>Invest Net Worth (€)</th>
+    </tr></thead><tbody>`;
+    for (let i = 0; i <= data.years; i++) {
+        table += `<tr><td>${i}</td><td>${data.buyWorth[i].value.toFixed(2)}</td><td>${data.investWorth[i].value.toFixed(2)}</td></tr>`;
+    }
+    table += '</tbody></table>';
+    document.getElementById('results').innerHTML = table;
+    plotResults(data);
+}
 
-        // Function to initialize Handsontable with extracted data
-        function initializeHandsontable(data1) {
-            const hyperformulaInstance = HyperFormula.buildEmpty({
-                licenseKey: 'internal-use-in-handsontable',
-            });
-
-            const container1 = document.querySelector('#example-basic-multi-sheet-1');
-            const hot1 = new Handsontable(container1, {
-                data: data1,
-                colHeaders: true,
-                rowHeaders: true,
-                colWidths: 200,
-                formulas: {
-                    engine: hyperformulaInstance,
+function plotResults(data) {
+    const ctx = document.getElementById('plot').getContext('2d');
+    if (window.resultChart) window.resultChart.destroy();
+    window.resultChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: data.buyWorth.map(x => x.year),
+            datasets: [
+                {
+                    label: 'Buy Net Worth',
+                    data: data.buyWorth.map(x => x.value),
+                    borderColor: 'blue',
+                    fill: false
                 },
-                licenseKey: 'non-commercial-and-evaluation',
-            });
-
-            // Add event listener to the download button
-            document.getElementById('download-excel').addEventListener('click', function() {
-                const exportData = hot1.getData();
-                const ws = XLSX.utils.aoa_to_sheet(exportData);
-                const wb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
-                XLSX.writeFile(wb, 'handsontable_data.xlsx');
-            });
+                {
+                    label: 'Invest Net Worth',
+                    data: data.investWorth.map(x => x.value),
+                    borderColor: 'green',
+                    fill: false
+                }
+            ]
+        },
+        options: {
+            responsive: false,
+            plugins: {
+                legend: { position: 'top' },
+                tooltip: { enabled: true }
+            },
+            scales: {
+                x: { title: { display: true, text: 'Year' } },
+                y: { title: { display: true, text: 'Net Worth (€)' } }
+            }
         }
+    });
+}
 
-        // Load the Excel file and initialize Handsontable
-        document.addEventListener('DOMContentLoaded', async function() {
-            const sheetsData = await readExcelFile(excelFilePath);
-            const data1 = sheetsData[0];
-            initializeHandsontable(data1);
-        });
-    </script>
+function updateIntermediateResults() {
+    const housePrice = +document.getElementById('housePrice').value || 0;
+    const notarisPct = +document.getElementById('notarisCost').value || 0;
+    const registrationPct = +document.getElementById('registrationCost').value || 0;
+    const maintenancePct = +document.getElementById('maintenanceCost').value || 0;
+    const downPayment = +document.getElementById('downPayment').value || 0;
+    const monthlyBudget = +document.getElementById('monthlyBudget').value || 0;
+    const rentalCost = +document.getElementById('rentalCost').value || 0;
+    const notarisCost = housePrice * (notarisPct/100);
+    const registrationCost = housePrice * (registrationPct/100);
+    const maintenanceCost = housePrice * (maintenancePct/100);
+    const totalInitialCosts = downPayment + notarisCost + registrationCost;
+    const investmentCapacity = monthlyBudget - rentalCost;
+    document.getElementById('intermediateResults').innerHTML = `
+        <fieldset style='border:1px solid #ccc; padding:15px;'>
+        <legend><b>Calculated Intermediate Variables</b></legend>
+        <ul style='list-style:none; padding-left:0;'>
+            <li><b>Notaris Costs:</b> €${notarisCost.toFixed(2)}</li>
+            <li><b>Registration Costs:</b> €${registrationCost.toFixed(2)}</li>
+            <li><b>Maintenance Costs (per year):</b> €${maintenanceCost.toFixed(2)}</li>
+            <li><b>Total Initial Costs (Down Payment + Notaris + Registration):</b> €${totalInitialCosts.toFixed(2)}</li>
+            <li><b>Investment Capacity (Monthly Budget - Rent):</b> €${investmentCapacity.toFixed(2)} per month</li>
+        </ul>
+        </fieldset>
+    `;
+}
+
+['housePrice','notarisCost','registrationCost','maintenanceCost','downPayment','monthlyBudget','rentalCost'].forEach(id => {
+    document.getElementById(id).addEventListener('input', updateIntermediateResults);
+});
+window.onload = function() {
+    updateScenarioList();
+    updateIntermediateResults();
+};
+
+document.getElementById('simForm').onsubmit = function(e) {
+    e.preventDefault();
+    let inputs = {
+        housePrice: +document.getElementById('housePrice').value,
+        downPayment: +document.getElementById('downPayment').value,
+        rentalCost: +document.getElementById('rentalCost').value,
+        loanTerm: +document.getElementById('loanTerm').value,
+        monthlyBudget: +document.getElementById('monthlyBudget').value,
+        notarisCost: +document.getElementById('notarisCost').value,
+        registrationCost: +document.getElementById('registrationCost').value,
+        realEstateGrowth: +document.getElementById('realEstateGrowth').value,
+        investmentReturn: +document.getElementById('investmentReturn').value,
+        bankRate: +document.getElementById('bankRate').value,
+        prepaymentPenalty: +document.getElementById('prepaymentPenalty').value,
+        maintenanceCost: +document.getElementById('maintenanceCost').value
+    };
+    let scenarioName = document.getElementById('scenarioName').value.trim();
+    let result = simulate(inputs);
+    saveScenario(scenarioName, result);
+    showResults(result);
+};
+
+window.onload = updateScenarioList;
+</script>
 </body>
 </html>
