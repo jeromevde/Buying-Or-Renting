@@ -20,6 +20,65 @@
         #plot { margin-top: 40px; }
         fieldset { border: 1px solid #ccc; padding: 15px; }
         legend { font-weight: bold; }
+        .collapsible {
+            background-color: #eee;
+            color: #444;
+            cursor: pointer;
+            padding: 10px;
+            width: 100%;
+            border: none;
+            text-align: left;
+            outline: none;
+            font-size: 18px;
+            margin-top: 10px;
+        }
+
+        .active, .collapsible:hover {
+            background-color: #ccc;
+        }
+
+        .content {
+            padding: 0 0 10px 0;
+            display: none;
+            overflow: hidden;
+            background-color: #f9f9f9;
+        }
+        .ytab {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 10px;
+        }
+        .ytab th, .ytab td {
+            border: 1px solid #aaa;
+            padding: 6px;
+            text-align: center;
+            position: relative;
+        }
+        .ytab th {
+            background: #f4f4f4;
+        }
+        .tooltip {
+            visibility: hidden;
+            background-color: #333;
+            color: #fff;
+            text-align: left;
+            border-radius: 6px;
+            padding: 6px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.3s;
+            width: 220px;
+            font-size: 13px;
+            pointer-events: none;
+        }
+        .ytab td:hover .tooltip {
+            visibility: visible;
+            opacity: 1;
+        }
     </style>
 </head>
 <body>
@@ -89,6 +148,8 @@
         </div>
     </form>
     <div id="intermediateResults" style="margin-bottom:30px;"></div>
+    <button type="button" class="collapsible" style="margin-bottom:10px;">Show/Hide Yearly Details</button>
+    <div class="content" id="yearlyDetailsContainer"></div>
     <div class="scenario-list">
         <label for="savedScenarios">Load Scenario:</label>
         <select id="savedScenarios"></select>
@@ -157,28 +218,52 @@ function simulate(inputs) {
     let monthlyLoanPayment = loan * monthlyLoanRate / (1 - Math.pow(1 + monthlyLoanRate, -years*12));
     let buyLoanBalance = loan;
     let investBalance = investCapital;
+    let yearlyRows = [];
     // Year 0
     buyWorth.push({ year: 0, value: houseValue - buyLoanBalance });
     investWorth.push({ year: 0, value: investBalance });
+    yearlyRows.push({
+        year: 0,
+        houseValue: houseValue,
+        loanBalance: buyLoanBalance,
+        interest: 0,
+        principal: 0,
+        penalty: 0,
+        maintenance: 0,
+        buyNetWorth: houseValue - buyLoanBalance,
+        investBalance: investBalance,
+        investNetWorth: investBalance,
+        rentPaid: 0
+    });
     for (let y = 1; y <= years; y++) {
         houseValue *= (1 + inputs.realEstateGrowth/100);
         let interest = buyLoanBalance * (inputs.bankRate/100);
         let principal = Math.min(monthlyLoanPayment*12 - interest, buyLoanBalance);
         buyLoanBalance -= principal;
-        // Prepayment penalty at end of loan
         let penalty = (y === years) ? buyLoanBalance * (inputs.prepaymentPenalty/100) : 0;
-        // Maintenance cost
         let maintenance = inputs.housePrice * (inputs.maintenanceCost/100);
-        // Net worth for buying: house value minus remaining loan, penalty, and maintenance
         let buyNetWorth = houseValue - buyLoanBalance - penalty - maintenance * y;
-        // Net worth for investing: invest balance grows, add monthly savings
         investBalance = investBalance * (1 + inputs.investmentReturn/100);
         investBalance += (inputs.monthlyBudget - inputs.rentalCost) * 12;
         let investNetWorth = investBalance;
+        let rentPaid = inputs.rentalCost * 12;
         buyWorth.push({ year: y, value: buyNetWorth });
         investWorth.push({ year: y, value: investNetWorth });
+        yearlyRows.push({
+            year: y,
+            houseValue: houseValue,
+            loanBalance: buyLoanBalance,
+            interest: interest,
+            principal: principal,
+            penalty: penalty,
+            maintenance: maintenance,
+            buyNetWorth: buyNetWorth,
+            investBalance: investBalance,
+            investNetWorth: investNetWorth,
+            rentPaid: rentPaid
+        });
     }
-    return { buyWorth, investWorth, years, inputs };
+    return { buyWorth, investWorth, years, inputs, yearlyRows };
 }
 
 function showResults(data) {
@@ -193,6 +278,52 @@ function showResults(data) {
     table += '</tbody></table>';
     document.getElementById('results').innerHTML = table;
     plotResults(data);
+    renderYearlyDetails(data.yearlyRows);
+}
+
+function renderYearlyDetails(rows) {
+    const explain = {
+        houseValue: 'Home Value = Previous Home Value × (1 + Appreciation Rate). Uses: Previous Home Value, Real Estate Growth',
+        loanBalance: 'Mortgage Balance = Previous Year Balance - Principal Paid. Uses: Previous Mortgage Balance, Principal Paid',
+        interest: 'Interest Paid = Mortgage Balance × Interest Rate. Uses: Mortgage Balance, Bank Rate',
+        principal: 'Principal Paid = Total Payment - Interest Paid. Uses: Total Payment, Interest Paid',
+        penalty: 'Prepayment Penalty = Remaining Loan × Penalty Rate (only last year). Uses: Remaining Loan, Prepayment Penalty',
+        maintenance: 'Maintenance = Initial House Price × Maintenance Rate. Uses: House Price, Maintenance Cost',
+        buyNetWorth: 'Buy Net Worth = Home Value - Mortgage Balance - Penalty - Maintenance (cumulative). Uses: Home Value, Mortgage Balance, Penalty, Maintenance',
+        investBalance: 'Investment Balance = Previous Balance × (1 + Investment Return) + (Monthly Budget - Rent) × 12. Uses: Previous Balance, Investment Return, Monthly Budget, Rent',
+        investNetWorth: 'Invest Net Worth = Investment Balance. Uses: Investment Balance',
+        rentPaid: 'Rent Paid = Monthly Rent × 12. Uses: Rental Cost'
+    };
+    let html = `<table class=\"ytab\"><thead><tr>
+        <th>Year</th>
+        <th>Home Value</th>
+        <th>Mortgage Balance</th>
+        <th>Interest Paid</th>
+        <th>Principal Paid</th>
+        <th>Prepayment Penalty</th>
+        <th>Maintenance</th>
+        <th>Buy Net Worth</th>
+        <th>Investment Balance</th>
+        <th>Invest Net Worth</th>
+        <th>Rent Paid</th>
+    </tr></thead><tbody>`;
+    for (const r of rows) {
+        html += `<tr>
+            <td>${r.year}</td>
+            <td>${r.houseValue.toFixed(2)}<span class=\"tooltip\">${explain.houseValue}</span></td>
+            <td>${r.loanBalance.toFixed(2)}<span class=\"tooltip\">${explain.loanBalance}</span></td>
+            <td>${r.interest.toFixed(2)}<span class=\"tooltip\">${explain.interest}</span></td>
+            <td>${r.principal.toFixed(2)}<span class=\"tooltip\">${explain.principal}</span></td>
+            <td>${r.penalty.toFixed(2)}<span class=\"tooltip\">${explain.penalty}</span></td>
+            <td>${r.maintenance.toFixed(2)}<span class=\"tooltip\">${explain.maintenance}</span></td>
+            <td>${r.buyNetWorth.toFixed(2)}<span class=\"tooltip\">${explain.buyNetWorth}</span></td>
+            <td>${r.investBalance.toFixed(2)}<span class=\"tooltip\">${explain.investBalance}</span></td>
+            <td>${r.investNetWorth.toFixed(2)}<span class=\"tooltip\">${explain.investNetWorth}</span></td>
+            <td>${r.rentPaid.toFixed(2)}<span class=\"tooltip\">${explain.rentPaid}</span></td>
+        </tr>`;
+    }
+    html += '</tbody></table>';
+    document.getElementById('yearlyDetailsContainer').innerHTML = html;
 }
 
 function plotResults(data) {
@@ -289,6 +420,16 @@ document.getElementById('simForm').onsubmit = function(e) {
 };
 
 window.onload = updateScenarioList;
+
+document.querySelector(".collapsible").addEventListener("click", function() {
+    this.classList.toggle("active");
+    var content = this.nextElementSibling;
+    if (content.style.display === "block") {
+        content.style.display = "none";
+    } else {
+        content.style.display = "block";
+    }
+});
 </script>
 </body>
 </html>
