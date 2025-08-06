@@ -144,47 +144,113 @@ function renderStrategyTab(idx) {
   const s = strategies[idx];
   const tabContent = document.getElementById('tabContent');
   tabContent.innerHTML = `
-    <form id="strategyForm${idx}">
-      <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 8px;">
-        <div style="display: flex; flex-direction: column; gap: 6px;">
-          <label>House Price (€)</label>
-          <input type="number" name="housePrice" value="400000">
-        </div>
-        <div style="display: flex; flex-direction: column; gap: 6px;">
-          <label>Initial Deposit (€)</label>
-          <input type="number" name="initialDeposit" value="80000">
-        </div>
-        <div style="display: flex; flex-direction: column; gap: 6px;">
-          <label>Loan Term (years)</label>
-          <input type="number" name="loanTerm" value="25">
-        </div>
-        <div style="display: flex; flex-direction: column; gap: 6px; align-items: flex-start; min-width: 180px; position: relative;">
-          <label style="color: #555; font-style: italic;">Loan Monthly Payment (€)</label>
-          <input type="number" name="monthlyRE" value="1200" readonly style="background: #f0f0f0; border: 1px solid #bbb; color: #333; font-weight: bold;">
-          <span style="font-size: 12px; color: #888;">(calculated)</span>
-          <span class="tooltip" style="bottom: 110%; left: 50%; transform: translateX(-50%);">Loan Monthly Payment (€) = (Loan Amount × Monthly Interest Rate) / (1 - (1 + Monthly Interest Rate)<sup>-Loan Term × 12</sup>)<br><br>Values will appear here.</span>
-        </div>
-        <div style="display: flex; flex-direction: column; gap: 6px; align-items: flex-start; min-width: 180px; position: relative;">
-          <label style="color: #555; font-style: italic;">Monthly Maintenance Costs (€)</label>
-          <input type="number" name="monthlyMaintenance" value="333" readonly style="background: #f0f0f0; border: 1px solid #bbb; color: #333; font-weight: bold;">
-          <span style="font-size: 12px; color: #888;">(calculated)</span>
-          <span class="tooltip" style="bottom: 110%; left: 50%; transform: translateX(-50%);">Monthly Maintenance Costs (€) = House Price × Maintenance Rate / 12<br><br>Values will appear here.</span>
-        </div>
+    <div style="display: flex;">
+      <div style="display: flex; flex-direction: column; border-right: 1px solid #ccc; padding-right: 18px; margin-right: 18px;">
+        <button id="buyTab${idx}" class="vertical-tab active" style="padding: 10px 18px; border: none; background: #eee; cursor: pointer; font-size: 17px; border-radius: 4px 4px 0 0; margin-bottom: 2px;">Buy</button>
+        <button id="rentTab${idx}" class="vertical-tab" style="padding: 10px 18px; border: none; background: #eee; cursor: pointer; font-size: 17px; border-radius: 0 0 4px 4px;">Rent</button>
       </div>
-      <div id="monthlyAllowanceMsg${idx}" style="color: #b00; font-weight: bold; margin: 8px 0;"></div>
-      <div style="display: flex; align-items: flex-end; gap: 16px; margin-bottom: 8px;">
-        <div style="display: flex; flex-direction: column; gap: 6px; align-items: flex-start; position: relative;">
-          <label style="color: #555; font-style: italic;">Remainder for Stocks/Bonds (€)</label>
-          <input type="number" name="monthlyRemainder" value="800" readonly style="background: #f0f0f0; border: 1px solid #bbb; color: #333; font-weight: bold;">
-          <span style="font-size: 12px; color: #888;">(calculated)</span>
-          <span class="tooltip" style="bottom: 110%; left: 50%; transform: translateX(-50%);">Remainder for Stocks/Bonds (€) = Max Investable Monthly Allowance (€) - Loan Monthly Payment (€) - Monthly Maintenance Costs (€)<br><br>This is the amount available per month for stocks/bonds investment after paying the loan and maintenance.</span>
-        </div>
-        <div id="splitInputs${idx}" style="display: flex; gap: 12px; align-items: flex-end;"></div>
-      </div>
-      <div id="remainderMsg${idx}" style="color: #b00; font-weight: bold; margin: 8px 0;"></div>
-    </form>
+      <div id="verticalTabContent${idx}" style="flex: 1;"></div>
+    </div>
     <div id="strategyTable${idx}"></div>
   `;
+  // Render buy tab by default
+  renderVerticalTab(idx, 'buy');
+  document.getElementById(`buyTab${idx}`).onclick = () => {
+    document.getElementById(`buyTab${idx}`).classList.add('active');
+    document.getElementById(`rentTab${idx}`).classList.remove('active');
+    renderVerticalTab(idx, 'buy');
+  };
+  document.getElementById(`rentTab${idx}`).onclick = () => {
+    document.getElementById(`buyTab${idx}`).classList.remove('active');
+    document.getElementById(`rentTab${idx}`).classList.add('active');
+    renderVerticalTab(idx, 'rent');
+  };
+function renderVerticalTab(idx, mode) {
+  const tabDiv = document.getElementById(`verticalTabContent${idx}`);
+  if (mode === 'buy') {
+    tabDiv.innerHTML = `
+      <form id="strategyForm${idx}">
+        <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 8px;">
+          <div style="display: flex; flex-direction: column; gap: 6px;">
+            <label>House Price (€)</label>
+            <input type="number" name="housePrice" value="400000">
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px;">
+            <label>Initial Deposit (€)</label>
+            <input type="number" name="initialDeposit" value="80000">
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px;">
+            <label>Loan Term (years)</label>
+            <input type="number" name="loanTerm" value="25">
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px; align-items: flex-start; min-width: 180px; position: relative;">
+            <label style="color: #555; font-style: italic;">Loan Monthly Payment (€)</label>
+            <input type="number" name="monthlyRE" value="1200" readonly style="background: #f0f0f0; border: 1px solid #bbb; color: #333; font-weight: bold;">
+            <span style="font-size: 12px; color: #888;">(calculated)</span>
+            <span class="tooltip" style="bottom: 110%; left: 50%; transform: translateX(-50%);">Loan Monthly Payment (€) = (Loan Amount × Monthly Interest Rate) / (1 - (1 + Monthly Interest Rate)<sup>-Loan Term × 12</sup>)<br><br>Values will appear here.</span>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px; align-items: flex-start; min-width: 180px; position: relative;">
+            <label style="color: #555; font-style: italic;">Monthly Maintenance Costs (€)</label>
+            <input type="number" name="monthlyMaintenance" value="333" readonly style="background: #f0f0f0; border: 1px solid #bbb; color: #333; font-weight: bold;">
+            <span style="font-size: 12px; color: #888;">(calculated)</span>
+            <span class="tooltip" style="bottom: 110%; left: 50%; transform: translateX(-50%);">Monthly Maintenance Costs (€) = House Price × Maintenance Rate / 12<br><br>Values will appear here.</span>
+          </div>
+        </div>
+        <div id="monthlyAllowanceMsg${idx}" style="color: #b00; font-weight: bold; margin: 8px 0;"></div>
+        <div style="display: flex; align-items: flex-end; gap: 16px; margin-bottom: 8px;">
+          <div style="display: flex; flex-direction: column; gap: 6px; align-items: flex-start; position: relative;">
+            <label style="color: #555; font-style: italic;">Remainder for Stocks/Bonds (€)</label>
+            <input type="number" name="monthlyRemainder" value="800" readonly style="background: #f0f0f0; border: 1px solid #bbb; color: #333; font-weight: bold;">
+            <span style="font-size: 12px; color: #888;">(calculated)</span>
+            <span class="tooltip" style="bottom: 110%; left: 50%; transform: translateX(-50%);">Remainder for Stocks/Bonds (€) = Max Investable Monthly Allowance (€) - Loan Monthly Payment (€) - Monthly Maintenance Costs (€)<br><br>This is the amount available per month for stocks/bonds investment after paying the loan and maintenance.</span>
+          </div>
+          <div id="splitInputs${idx}" style="display: flex; gap: 12px; align-items: flex-end;"></div>
+        </div>
+        <div id="remainderMsg${idx}" style="color: #b00; font-weight: bold; margin: 8px 0;"></div>
+      </form>
+    `;
+    // Add listeners for auto simulation
+    const form = document.getElementById(`strategyForm${idx}`);
+    ['housePrice','initialDeposit','loanTerm'].forEach(name => {
+      form[name].addEventListener('input', () => {
+        updateStrategyInputs(idx);
+        runStrategySimulation(idx);
+      });
+    });
+    updateStrategyInputs(idx);
+    runStrategySimulation(idx);
+  } else {
+    tabDiv.innerHTML = `
+      <form id="strategyForm${idx}">
+        <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 8px;">
+          <div style="display: flex; flex-direction: column; gap: 6px;">
+            <label>Monthly Rent (€)</label>
+            <input type="number" name="monthlyRent" value="1200">
+          </div>
+        </div>
+        <div id="monthlyAllowanceMsg${idx}" style="color: #b00; font-weight: bold; margin: 8px 0;"></div>
+        <div style="display: flex; align-items: flex-end; gap: 16px; margin-bottom: 8px;">
+          <div style="display: flex; flex-direction: column; gap: 6px; align-items: flex-start; position: relative;">
+            <label style="color: #555; font-style: italic;">Remainder for Stocks/Bonds (€)</label>
+            <input type="number" name="monthlyRemainder" value="800" readonly style="background: #f0f0f0; border: 1px solid #bbb; color: #333; font-weight: bold;">
+            <span style="font-size: 12px; color: #888;">(calculated)</span>
+            <span class="tooltip" style="bottom: 110%; left: 50%; transform: translateX(-50%);">Remainder for Stocks/Bonds (€) = Max Investable Monthly Allowance (€) - Monthly Rent (€)<br><br>This is the amount available per month for stocks/bonds investment after paying rent.</span>
+          </div>
+          <div id="splitInputs${idx}" style="display: flex; gap: 12px; align-items: flex-end;"></div>
+        </div>
+        <div id="remainderMsg${idx}" style="color: #b00; font-weight: bold; margin: 8px 0;"></div>
+      </form>
+    `;
+    // Add listeners for auto simulation
+    const form = document.getElementById(`strategyForm${idx}`);
+    form.monthlyRent.addEventListener('input', () => {
+      updateStrategyInputs(idx, 'rent');
+      runStrategySimulation(idx, 'rent');
+    });
+    updateStrategyInputs(idx, 'rent');
+    runStrategySimulation(idx, 'rent');
+  }
+}
   // Add listeners for auto simulation
   const form = document.getElementById(`strategyForm${idx}`);
   // Add listeners for house price, deposit, term
@@ -200,108 +266,162 @@ function renderStrategyTab(idx) {
 }
 
 function updateStrategyInputs(idx) {
+  // Determine mode (buy/rent)
+  const tabDiv = document.getElementById(`verticalTabContent${idx}`);
+  const form = document.getElementById(`strategyForm${idx}`);
+  let mode = 'buy';
+  if (form && form.monthlyRent) mode = 'rent';
   const fixed = {
     cashAtHand: +document.getElementById('cashAtHand').value,
     monthlyAllowance: +document.getElementById('monthlyAllowance').value,
     interestRate: +document.getElementById('interestRate').value
   };
-  const form = document.getElementById(`strategyForm${idx}`);
-  const housePrice = +form.housePrice.value;
-  const initialDeposit = +form.initialDeposit.value;
-  const loanTerm = +form.loanTerm.value;
-  // Check deposit vs cash at hand
-  const msgDiv = document.getElementById(`monthlyAllowanceMsg${idx}`);
-  if (initialDeposit > fixed.cashAtHand) {
-    msgDiv.textContent = 'Error: Initial deposit cannot exceed cash at hand!';
+  let remainder = 0;
+  let msgDiv = document.getElementById(`monthlyAllowanceMsg${idx}`);
+  if (mode === 'buy') {
+    const housePrice = +form.housePrice.value;
+    const initialDeposit = +form.initialDeposit.value;
+    const loanTerm = +form.loanTerm.value;
+    if (initialDeposit > fixed.cashAtHand) {
+      msgDiv.textContent = 'Error: Initial deposit cannot exceed cash at hand!';
+    } else {
+      msgDiv.textContent = '';
+    }
+    const loan = housePrice - initialDeposit;
+    const monthlyLoanRate = (fixed.interestRate/100)/12;
+    const monthlyRE = loan * monthlyLoanRate / (1 - Math.pow(1 + monthlyLoanRate, -loanTerm*12));
+    form.monthlyRE.value = monthlyRE.toFixed(2);
+    const maintenanceRate = +document.getElementById('maintenanceCosts').value;
+    const monthlyMaintenance = housePrice * (maintenanceRate / 100) / 12;
+    form.monthlyMaintenance.value = monthlyMaintenance.toFixed(2);
+    remainder = fixed.monthlyAllowance - monthlyRE - monthlyMaintenance;
+    form.monthlyRemainder.value = remainder > 0 ? remainder.toFixed(2) : 0;
+    form.monthlyRemainder.title = "Remainder for Stocks/Bonds (€) = Max Investable Monthly Allowance - Loan Monthly Payment - Monthly Maintenance Costs";
+    // Tooltip updates
+    const remainderInput = form.monthlyRemainder;
+    const remainderTooltip = remainderInput.parentElement.querySelector('.tooltip');
+    if (remainderTooltip) {
+      const allowance = fixed.monthlyAllowance.toFixed(2);
+      const loanPay = monthlyRE.toFixed(2);
+      const maint = monthlyMaintenance.toFixed(2);
+      const remainderVal = form.monthlyRemainder.value;
+      remainderTooltip.innerHTML = `monthly allowance (${allowance}) - loan (${loanPay}) - maintenance (${maint}) = <b>${remainderVal}</b>`;
+      remainderInput.addEventListener('mouseenter', () => { remainderTooltip.style.visibility = 'visible'; remainderTooltip.style.opacity = '1'; });
+      remainderInput.addEventListener('mouseleave', () => { remainderTooltip.style.visibility = 'hidden'; remainderTooltip.style.opacity = '0'; });
+    }
+    const loanInput = form.monthlyRE;
+    const loanTooltip = loanInput.parentElement.querySelector('.tooltip');
+    if (loanTooltip) {
+      const loanAmount = housePrice - initialDeposit;
+      const monthlyRate = (fixed.interestRate/100/12).toFixed(5);
+      const nMonths = loanTerm*12;
+      loanTooltip.innerHTML = `Loan Monthly Payment (€) = (Loan Amount × Monthly Interest Rate) / (1 - (1 + Monthly Interest Rate)<sup>-${nMonths}</sup>)<br><br>Values: loan (${loanAmount}) × rate (${monthlyRate}) / (1 - (1 + ${monthlyRate})<sup>-${nMonths}</sup>) = <b>${form.monthlyRE.value}</b>`;
+      loanInput.addEventListener('mouseenter', () => { loanTooltip.style.visibility = 'visible'; loanTooltip.style.opacity = '1'; });
+      loanInput.addEventListener('mouseleave', () => { loanTooltip.style.visibility = 'hidden'; loanTooltip.style.opacity = '0'; });
+    }
+    const maintInput = form.monthlyMaintenance;
+    const maintTooltip = maintInput.parentElement.querySelector('.tooltip');
+    if (maintTooltip) {
+      maintTooltip.innerHTML = `Monthly Maintenance Costs (€) = House Price × Maintenance Rate / 12<br><br>Values: ${housePrice} × ${document.getElementById('maintenanceCosts').value}% / 12 = <b>${form.monthlyMaintenance.value}</b>`;
+      maintInput.addEventListener('mouseenter', () => { maintTooltip.style.visibility = 'visible'; maintTooltip.style.opacity = '1'; });
+      maintInput.addEventListener('mouseleave', () => { maintTooltip.style.visibility = 'hidden'; maintTooltip.style.opacity = '0'; });
+    }
+    const remainderMsg = document.getElementById(`remainderMsg${idx}`);
+    if (remainder < 0) {
+      remainderMsg.textContent = 'Error: Monthly real estate payment plus maintenance exceeds max investable monthly allowance!';
+    } else {
+      remainderMsg.textContent = '';
+    }
+    // Show split inputs only if remainder > 0
+    const splitDiv = document.getElementById(`splitInputs${idx}`);
+    if (remainder > 0) {
+      const stocksPct = strategies[idx].splits.stocks;
+      const bondsPct = 100 - stocksPct;
+      const stocksVal = ((remainder * stocksPct / 100)).toFixed(2);
+      const bondsVal = ((remainder * bondsPct / 100)).toFixed(2);
+      splitDiv.innerHTML = `
+        <div style="display: flex; flex-direction: column; align-items: flex-start;">
+          <label style="font-size: 18px;">Stocks %</label>
+          <input type="number" name="stocks" min="0" max="100" value="${stocksPct}" style="width: 60px; font-size: 18px; padding: 6px;">
+          <span id="stocksNominal${idx}" style="font-size: 16px; color: #888; margin-top: 2px;">${stocksVal} €</span>
+        </div>
+        <div style="display: flex; flex-direction: column; align-items: flex-start;">
+          <label style="font-size: 18px;">Bonds %</label>
+          <input type="number" name="bonds" value="${bondsPct}" style="width: 60px; font-size: 18px; padding: 6px; background: #eee; color: #888;" readonly>
+          <span id="bondsNominal${idx}" style="font-size: 16px; color: #888; margin-top: 2px;">${bondsVal} €</span>
+        </div>
+      `;
+      splitDiv.querySelector("[name='stocks']").addEventListener('input', () => {
+        const stocksInput = splitDiv.querySelector("[name='stocks']");
+        let stocksPctNew = +stocksInput.value;
+        if (stocksPctNew < 0) stocksPctNew = 0;
+        if (stocksPctNew > 100) stocksPctNew = 100;
+        strategies[idx].splits.stocks = stocksPctNew;
+        const bondsPctNew = 100 - stocksPctNew;
+        splitDiv.querySelector("[name='bonds']").value = bondsPctNew;
+        splitDiv.querySelector(`#stocksNominal${idx}`).textContent = ((remainder * stocksPctNew / 100).toFixed(2)) + ' €';
+        splitDiv.querySelector(`#bondsNominal${idx}`).textContent = ((remainder * bondsPctNew / 100).toFixed(2)) + ' €';
+        runStrategySimulation(idx);
+      });
+    } else {
+      splitDiv.innerHTML = '';
+    }
   } else {
-    msgDiv.textContent = '';
-  }
-  // Calculate monthly payment for real estate
-  const loan = housePrice - initialDeposit;
-  const monthlyLoanRate = (fixed.interestRate/100)/12;
-  const monthlyRE = loan * monthlyLoanRate / (1 - Math.pow(1 + monthlyLoanRate, -loanTerm*12));
-  form.monthlyRE.value = monthlyRE.toFixed(2);
-  // Calculate monthly maintenance cost
-  const maintenanceRate = +document.getElementById('maintenanceCosts').value;
-  const monthlyMaintenance = housePrice * (maintenanceRate / 100) / 12;
-  form.monthlyMaintenance.value = monthlyMaintenance.toFixed(2);
-  // Check monthly allowance
-  let remainder = fixed.monthlyAllowance - monthlyRE - monthlyMaintenance;
-  form.monthlyRemainder.value = remainder > 0 ? remainder.toFixed(2) : 0;
-  // Add hover tooltip to remainder input (for accessibility, in addition to custom tooltip)
-  form.monthlyRemainder.title = "Remainder for Stocks/Bonds (€) = Max Investable Monthly Allowance - Loan Monthly Payment - Monthly Maintenance Costs";
-  // Show/hide custom tooltip on hover for remainder
-  const remainderInput = form.monthlyRemainder;
-  const remainderTooltip = remainderInput.parentElement.querySelector('.tooltip');
-  if (remainderTooltip) {
-    // Get actual values for the formula
-    const allowance = fixed.monthlyAllowance.toFixed(2);
-    const loanPay = monthlyRE.toFixed(2);
-    const maint = monthlyMaintenance.toFixed(2);
-    const remainderVal = form.monthlyRemainder.value;
-    remainderTooltip.innerHTML = `monthly allowance (${allowance}) - loan (${loanPay}) - maintenance (${maint}) = <b>${remainderVal}</b>`;
-    remainderInput.addEventListener('mouseenter', () => { remainderTooltip.style.visibility = 'visible'; remainderTooltip.style.opacity = '1'; });
-    remainderInput.addEventListener('mouseleave', () => { remainderTooltip.style.visibility = 'hidden'; remainderTooltip.style.opacity = '0'; });
-  }
-  // Show/hide custom tooltip on hover for loan monthly payment
-  const loanInput = form.monthlyRE;
-  const loanTooltip = loanInput.parentElement.querySelector('.tooltip');
-  if (loanTooltip) {
-    const loanAmount = housePrice - initialDeposit;
-    const monthlyRate = (fixed.interestRate/100/12).toFixed(5);
-    const nMonths = loanTerm*12;
-    loanTooltip.innerHTML = `Loan Monthly Payment (€) = (Loan Amount × Monthly Interest Rate) / (1 - (1 + Monthly Interest Rate)<sup>-${nMonths}</sup>)<br><br>Values: loan (${loanAmount}) × rate (${monthlyRate}) / (1 - (1 + ${monthlyRate})<sup>-${nMonths}</sup>) = <b>${form.monthlyRE.value}</b>`;
-    loanInput.addEventListener('mouseenter', () => { loanTooltip.style.visibility = 'visible'; loanTooltip.style.opacity = '1'; });
-    loanInput.addEventListener('mouseleave', () => { loanTooltip.style.visibility = 'hidden'; loanTooltip.style.opacity = '0'; });
-  }
-  // Show/hide custom tooltip on hover for monthly maintenance
-  const maintInput = form.monthlyMaintenance;
-  const maintTooltip = maintInput.parentElement.querySelector('.tooltip');
-  if (maintTooltip) {
-    maintTooltip.innerHTML = `Monthly Maintenance Costs (€) = House Price × Maintenance Rate / 12<br><br>Values: ${housePrice} × ${document.getElementById('maintenanceCosts').value}% / 12 = <b>${form.monthlyMaintenance.value}</b>`;
-    maintInput.addEventListener('mouseenter', () => { maintTooltip.style.visibility = 'visible'; maintTooltip.style.opacity = '1'; });
-    maintInput.addEventListener('mouseleave', () => { maintTooltip.style.visibility = 'hidden'; maintTooltip.style.opacity = '0'; });
-  }
-  const remainderMsg = document.getElementById(`remainderMsg${idx}`);
-  if (remainder < 0) {
-    remainderMsg.textContent = 'Error: Monthly real estate payment plus maintenance exceeds max investable monthly allowance!';
-  } else {
-    remainderMsg.textContent = '';
-  }
-  // Show split inputs only if remainder > 0
-  const splitDiv = document.getElementById(`splitInputs${idx}`);
-  if (remainder > 0) {
-    const stocksPct = strategies[idx].splits.stocks;
-    const bondsPct = 100 - stocksPct;
-    const stocksVal = ((remainder * stocksPct / 100)).toFixed(2);
-    const bondsVal = ((remainder * bondsPct / 100)).toFixed(2);
-    splitDiv.innerHTML = `
-      <div style="display: flex; flex-direction: column; align-items: flex-start;">
-        <label style="font-size: 18px;">Stocks %</label>
-        <input type="number" name="stocks" min="0" max="100" value="${stocksPct}" style="width: 60px; font-size: 18px; padding: 6px;">
-        <span id="stocksNominal${idx}" style="font-size: 16px; color: #888; margin-top: 2px;">${stocksVal} €</span>
-      </div>
-      <div style="display: flex; flex-direction: column; align-items: flex-start;">
-        <label style="font-size: 18px;">Bonds %</label>
-        <input type="number" name="bonds" value="${bondsPct}" style="width: 60px; font-size: 18px; padding: 6px; background: #eee; color: #888;" readonly>
-        <span id="bondsNominal${idx}" style="font-size: 16px; color: #888; margin-top: 2px;">${bondsVal} €</span>
-      </div>
-    `;
-    // Add listener for stocks input only
-    splitDiv.querySelector("[name='stocks']").addEventListener('input', () => {
-      const stocksInput = splitDiv.querySelector("[name='stocks']");
-      let stocksPctNew = +stocksInput.value;
-      if (stocksPctNew < 0) stocksPctNew = 0;
-      if (stocksPctNew > 100) stocksPctNew = 100;
-      strategies[idx].splits.stocks = stocksPctNew;
-      const bondsPctNew = 100 - stocksPctNew;
-      splitDiv.querySelector("[name='bonds']").value = bondsPctNew;
-      splitDiv.querySelector(`#stocksNominal${idx}`).textContent = ((remainder * stocksPctNew / 100).toFixed(2)) + ' €';
-      splitDiv.querySelector(`#bondsNominal${idx}`).textContent = ((remainder * bondsPctNew / 100).toFixed(2)) + ' €';
-      runStrategySimulation(idx);
-    });
-  } else {
-    splitDiv.innerHTML = '';
+    // Rent mode
+    const monthlyRent = +form.monthlyRent.value;
+    remainder = fixed.monthlyAllowance - monthlyRent;
+    form.monthlyRemainder.value = remainder > 0 ? remainder.toFixed(2) : 0;
+    form.monthlyRemainder.title = "Remainder for Stocks/Bonds (€) = Max Investable Monthly Allowance - Monthly Rent";
+    const remainderInput = form.monthlyRemainder;
+    const remainderTooltip = remainderInput.parentElement.querySelector('.tooltip');
+    if (remainderTooltip) {
+      const allowance = fixed.monthlyAllowance.toFixed(2);
+      const rentVal = monthlyRent.toFixed(2);
+      const remainderVal = form.monthlyRemainder.value;
+      remainderTooltip.innerHTML = `monthly allowance (${allowance}) - rent (${rentVal}) = <b>${remainderVal}</b>`;
+      remainderInput.addEventListener('mouseenter', () => { remainderTooltip.style.visibility = 'visible'; remainderTooltip.style.opacity = '1'; });
+      remainderInput.addEventListener('mouseleave', () => { remainderTooltip.style.visibility = 'hidden'; remainderTooltip.style.opacity = '0'; });
+    }
+    const remainderMsg = document.getElementById(`remainderMsg${idx}`);
+    if (remainder < 0) {
+      remainderMsg.textContent = 'Error: Monthly rent exceeds max investable monthly allowance!';
+    } else {
+      remainderMsg.textContent = '';
+    }
+    // Show split inputs only if remainder > 0
+    const splitDiv = document.getElementById(`splitInputs${idx}`);
+    if (remainder > 0) {
+      const stocksPct = strategies[idx].splits.stocks;
+      const bondsPct = 100 - stocksPct;
+      const stocksVal = ((remainder * stocksPct / 100)).toFixed(2);
+      const bondsVal = ((remainder * bondsPct / 100)).toFixed(2);
+      splitDiv.innerHTML = `
+        <div style="display: flex; flex-direction: column; align-items: flex-start;">
+          <label style="font-size: 18px;">Stocks %</label>
+          <input type="number" name="stocks" min="0" max="100" value="${stocksPct}" style="width: 60px; font-size: 18px; padding: 6px;">
+          <span id="stocksNominal${idx}" style="font-size: 16px; color: #888; margin-top: 2px;">${stocksVal} €</span>
+        </div>
+        <div style="display: flex; flex-direction: column; align-items: flex-start;">
+          <label style="font-size: 18px;">Bonds %</label>
+          <input type="number" name="bonds" value="${bondsPct}" style="width: 60px; font-size: 18px; padding: 6px; background: #eee; color: #888;" readonly>
+          <span id="bondsNominal${idx}" style="font-size: 16px; color: #888; margin-top: 2px;">${bondsVal} €</span>
+        </div>
+      `;
+      splitDiv.querySelector("[name='stocks']").addEventListener('input', () => {
+        const stocksInput = splitDiv.querySelector("[name='stocks']");
+        let stocksPctNew = +stocksInput.value;
+        if (stocksPctNew < 0) stocksPctNew = 0;
+        if (stocksPctNew > 100) stocksPctNew = 100;
+        strategies[idx].splits.stocks = stocksPctNew;
+        const bondsPctNew = 100 - stocksPctNew;
+        splitDiv.querySelector("[name='bonds']").value = bondsPctNew;
+        splitDiv.querySelector(`#stocksNominal${idx}`).textContent = ((remainder * stocksPctNew / 100).toFixed(2)) + ' €';
+        splitDiv.querySelector(`#bondsNominal${idx}`).textContent = ((remainder * bondsPctNew / 100).toFixed(2)) + ' €';
+        runStrategySimulation(idx, 'rent');
+      });
+    } else {
+      splitDiv.innerHTML = '';
+    }
   }
 }
 
