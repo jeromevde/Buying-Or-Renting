@@ -5,19 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Buy vs Invest Financial Simulator</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 40px; }
-        .container { max-width: 900px; margin: auto; }
-        h1 { text-align: center; }
-        form { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px; }
-        label { font-weight: bold; }
-        input, select { width: 100%; padding: 6px; margin-top: 4px; }
+        body { font-family: Arial, sans-serif; margin: 40px; font-size: 18px; }
+        .container { max-width: 1400px; margin: auto; display: flex; flex-direction: row; }
+        aside { width: 320px; min-width: 280px; margin-right: 40px; background: #f4f4f4; border-radius: 8px; padding: 24px 18px; }
+        main { flex: 1; min-width: 0; }
+        h1, h2 { text-align: center; }
+        form, #fixedVarsForm { display: flex; flex-direction: column; gap: 12px; margin-bottom: 30px; }
+        .form-row { display: flex; align-items: center; gap: 10px; }
+        label { font-weight: bold; margin-bottom: 2px; min-width: 160px; font-size: 18px; }
+        input, select { width: 110px; padding: 8px; margin-top: 2px; font-size: 18px; }
         .full-width { grid-column: 1 / span 2; }
         table { width: 100%; border-collapse: collapse; margin-top: 30px; }
-        th, td { border: 1px solid #ccc; padding: 8px; text-align: right; }
+        th, td { border: 1px solid #ccc; padding: 10px; text-align: right; font-size: 15px; }
         th { background: #f4f4f4; cursor: help; }
         tr:hover { background: #e9f7ef; }
         .scenario-list { margin-top: 20px; }
-        #plot { margin-top: 40px; }
+        #plot, #netWorthGraph { margin-top: 40px; margin-bottom: 20px; }
         fieldset { border: 1px solid #ccc; padding: 15px; }
         legend { font-weight: bold; }
         .collapsible {
@@ -50,7 +53,7 @@
         }
         .ytab th, .ytab td {
             border: 1px solid #aaa;
-            padding: 6px;
+            padding: 8px;
             text-align: center;
             position: relative;
         }
@@ -79,357 +82,429 @@
             visibility: visible;
             opacity: 1;
         }
+        .tabview { margin-top: 20px; }
+        .tab-buttons { display: flex; gap: 12px; margin-bottom: 14px; }
+        .tab-buttons button { padding: 10px 28px; border: none; background: #eee; cursor: pointer; font-size: 19px; border-radius: 4px; }
+        .tab-buttons button.active { background: #ccc; font-weight: bold; }
+        .tab-content { background: #f9f9f9; padding: 24px; border-radius: 6px; min-height: 120px; }
     </style>
 </head>
 <body>
 <div class="container">
-    <h1>Buy vs Invest Financial Simulator</h1>
-    <form id="simForm" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px;">
-        <fieldset style="border:1px solid #ccc; padding:15px;">
-            <legend><b>Buying Scenario</b></legend>
-            <div>
-                <label for="housePrice">House Price (€)</label>
-                <input type="number" id="housePrice" required value="400000">
-            </div>
-            <div>
-                <label for="downPayment">Down Payment (€)</label>
-                <input type="number" id="downPayment" required value="80000">
-            </div>
-            <div>
-                <label for="loanTerm">Loan Term (years)</label>
-                <input type="number" id="loanTerm" required value="30">
-            </div>
-            <div>
-                <label for="monthlyBudget">Monthly Budget for Living & Rent/Loan (€)</label>
-                <input type="number" id="monthlyBudget" required value="2000">
-            </div>
-            <div>
-                <label for="notarisCost">Notaris Costs (% of house price)</label>
-                <input type="number" id="notarisCost" step="0.01" required value="1.5">
-            </div>
-            <div>
-                <label for="registrationCost">Registration Costs (% of house price)</label>
-                <input type="number" id="registrationCost" step="0.01" required value="2.0">
-            </div>
-            <div>
-                <label for="prepaymentPenalty">Prepayment Penalty (% of remaining loan)</label>
-                <input type="number" id="prepaymentPenalty" step="0.01" required value="1.0">
-            </div>
-            <div>
-                <label for="realEstateGrowth">Avg. Real Estate Growth (%/year)</label>
-                <input type="number" id="realEstateGrowth" step="0.01" required value="3.0">
-            </div>
-            <div>
-                <label for="maintenanceCost">Maintenance Costs (% of house price/year)</label>
-                <input type="number" id="maintenanceCost" step="0.01" required value="1.0">
-            </div>
-            <div>
-                <label for="bankRate">Bank Lending Rate (%/year)</label>
-                <input type="number" id="bankRate" step="0.01" required value="4.0">
-            </div>
-        </fieldset>
-        <fieldset style="border:1px solid #ccc; padding:15px;">
-            <legend><b>Investing Scenario</b></legend>
-            <div>
-                <label for="rentalCost">Monthly Rent (€)</label>
-                <input type="number" id="rentalCost" required value="1600">
-            </div>
-            <div>
-                <label for="investmentReturn">Avg. Investment Return (%/year)</label>
-                <input type="number" id="investmentReturn" step="0.01" required value="7.0">
-            </div>
-        </fieldset>
-        <div class="full-width">
-            <label for="scenarioName">Scenario Name</label>
-            <input type="text" id="scenarioName" required value="Default Scenario">
+    <aside>
+        <h2>Fixed Variables</h2>
+        <form id="fixedVarsForm">
+            <div class="form-row"><label for="cashAtHand">Cash at Hand (€)</label><input type="number" id="cashAtHand" value="100000"></div>
+            <div class="form-row"><label for="interestRate">Interest Rate (%/year)</label><input type="number" id="interestRate" step="0.01" value="3.0"></div>
+            <div class="form-row"><label for="monthlyAllowance">Max Investable Monthly Allowance (€)</label><input type="number" id="monthlyAllowance" value="2000"></div>
+            <div class="form-row"><label for="avgStockReturn">Avg. Stock Return (%/year)</label><input type="number" id="avgStockReturn" step="0.01" value="10.0"></div>
+            <div class="form-row"><label for="avgRealEstateReturn">Avg. Real Estate Return (%/year)</label><input type="number" id="avgRealEstateReturn" step="0.01" value="3.0"></div>
+            <div class="form-row"><label for="avgBondReturn">Avg. Bond Return (%/year)</label><input type="number" id="avgBondReturn" step="0.01" value="3.0"></div>
+            <div class="form-row"><label for="prepaymentPenalty">Prepayment Penalty (% of remaining loan)</label><input type="number" id="prepaymentPenalty" step="0.01" value="1.0"></div>
+            <div class="form-row"><label for="registrationTax">Registration Tax (% of house price)</label><input type="number" id="registrationTax" step="0.01" value="6.0"></div>
+            <div class="form-row"><label for="maintenanceCosts">Maintenance Costs (% of house price/year)</label><input type="number" id="maintenanceCosts" step="0.01" value="1.0"></div>
+        </form>
+    </aside>
+    <main style="flex: 1;">
+        <h1>Buy vs Invest Financial Simulator</h1>
+        <canvas id="plot" width="1400" height="500" style="margin-bottom: 30px;"></canvas>
+        <div id="netWorthGraph"></div>
+        <div class="tabview">
+            <div class="tab-buttons" id="tabButtons"></div>
+            <div class="tab-content" id="tabContent"></div>
         </div>
-        <div class="full-width">
-            <button type="submit">Simulate</button>
-        </div>
-    </form>
-    <div id="intermediateResults" style="margin-bottom:30px;"></div>
-    <button type="button" class="collapsible" style="margin-bottom:10px;">Show/Hide Yearly Details</button>
-    <div class="content" id="yearlyDetailsContainer"></div>
-    <div class="scenario-list">
-        <label for="savedScenarios">Load Scenario:</label>
-        <select id="savedScenarios"></select>
-        <button onclick="loadScenario()">Load</button>
-    </div>
-    <div id="results"></div>
-    <canvas id="plot" width="800" height="400"></canvas>
+    </main>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-const scenarioStorageKey = 'buyVsInvestScenarios';
+const strategies = [
+  { name: "Balanced", splits: { realEstate: 40, stocks: 40, bonds: 20 } },
+  { name: "Aggressive Stocks", splits: { realEstate: 20, stocks: 70, bonds: 10 } },
+  { name: "Conservative Bonds", splits: { realEstate: 20, stocks: 20, bonds: 60 } }
+];
 
-function saveScenario(name, data) {
-    let scenarios = JSON.parse(localStorage.getItem(scenarioStorageKey) || '{}');
-    scenarios[name] = data;
-    localStorage.setItem(scenarioStorageKey, JSON.stringify(scenarios));
-    updateScenarioList();
+function renderTabButtons() {
+  const tabButtons = document.getElementById('tabButtons');
+  tabButtons.innerHTML = '';
+  strategies.forEach((s, i) => {
+    const btn = document.createElement('button');
+    btn.textContent = s.name;
+    btn.className = i === 0 ? 'active' : '';
+    btn.onclick = () => selectStrategyTab(i);
+    tabButtons.appendChild(btn);
+  });
 }
 
-function updateScenarioList() {
-    let scenarios = JSON.parse(localStorage.getItem(scenarioStorageKey) || '{}');
-    let select = document.getElementById('savedScenarios');
-    select.innerHTML = '';
-    Object.keys(scenarios).forEach(name => {
-        let opt = document.createElement('option');
-        opt.value = name;
-        opt.textContent = name;
-        select.appendChild(opt);
+function selectStrategyTab(idx) {
+  document.querySelectorAll('.tab-buttons button').forEach((b, i) => b.classList.toggle('active', i === idx));
+  renderStrategyTab(idx);
+}
+
+function renderStrategyTab(idx) {
+  const s = strategies[idx];
+  const tabContent = document.getElementById('tabContent');
+  tabContent.innerHTML = `
+    <form id="strategyForm${idx}">
+      <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 8px;">
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <label>House Price (€)</label>
+          <input type="number" name="housePrice" value="400000">
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <label>Initial Deposit (€)</label>
+          <input type="number" name="initialDeposit" value="80000">
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <label>Loan Term (years)</label>
+          <input type="number" name="loanTerm" value="25">
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px; align-items: flex-start; min-width: 180px; position: relative;">
+          <label style="color: #555; font-style: italic;">Loan Monthly Payment (€)</label>
+          <input type="number" name="monthlyRE" value="1200" readonly style="background: #f0f0f0; border: 1px solid #bbb; color: #333; font-weight: bold;">
+          <span style="font-size: 12px; color: #888;">(calculated)</span>
+          <span class="tooltip" style="bottom: 110%; left: 50%; transform: translateX(-50%);">Loan Monthly Payment (€) = (Loan Amount × Monthly Interest Rate) / (1 - (1 + Monthly Interest Rate)<sup>-Loan Term × 12</sup>)<br><br>Values will appear here.</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px; align-items: flex-start; min-width: 180px; position: relative;">
+          <label style="color: #555; font-style: italic;">Monthly Maintenance Costs (€)</label>
+          <input type="number" name="monthlyMaintenance" value="333" readonly style="background: #f0f0f0; border: 1px solid #bbb; color: #333; font-weight: bold;">
+          <span style="font-size: 12px; color: #888;">(calculated)</span>
+          <span class="tooltip" style="bottom: 110%; left: 50%; transform: translateX(-50%);">Monthly Maintenance Costs (€) = House Price × Maintenance Rate / 12<br><br>Values will appear here.</span>
+        </div>
+      </div>
+      <div id="monthlyAllowanceMsg${idx}" style="color: #b00; font-weight: bold; margin: 8px 0;"></div>
+      <div style="display: flex; align-items: flex-end; gap: 16px; margin-bottom: 8px;">
+        <div style="display: flex; flex-direction: column; gap: 6px; align-items: flex-start; position: relative;">
+          <label style="color: #555; font-style: italic;">Remainder for Stocks/Bonds (€)</label>
+          <input type="number" name="monthlyRemainder" value="800" readonly style="background: #f0f0f0; border: 1px solid #bbb; color: #333; font-weight: bold;">
+          <span style="font-size: 12px; color: #888;">(calculated)</span>
+          <span class="tooltip" style="bottom: 110%; left: 50%; transform: translateX(-50%);">Remainder for Stocks/Bonds (€) = Max Investable Monthly Allowance (€) - Loan Monthly Payment (€) - Monthly Maintenance Costs (€)<br><br>This is the amount available per month for stocks/bonds investment after paying the loan and maintenance.</span>
+        </div>
+        <div id="splitInputs${idx}" style="display: flex; gap: 12px; align-items: flex-end;"></div>
+      </div>
+      <div id="remainderMsg${idx}" style="color: #b00; font-weight: bold; margin: 8px 0;"></div>
+    </form>
+    <div id="strategyTable${idx}"></div>
+  `;
+  // Add listeners for auto simulation
+  const form = document.getElementById(`strategyForm${idx}`);
+  // Add listeners for house price, deposit, term
+  ['housePrice','initialDeposit','loanTerm'].forEach(name => {
+    form[name].addEventListener('input', () => {
+      updateStrategyInputs(idx);
+      runStrategySimulation(idx);
     });
+  });
+  // Initial update
+  updateStrategyInputs(idx);
+  runStrategySimulation(idx);
 }
 
-function loadScenario() {
-    let select = document.getElementById('savedScenarios');
-    let name = select.value;
-    let scenarios = JSON.parse(localStorage.getItem(scenarioStorageKey) || '{}');
-    if (scenarios[name]) {
-        let d = scenarios[name].inputs;
-        document.getElementById('housePrice').value = d.housePrice;
-        document.getElementById('downPayment').value = d.downPayment;
-        document.getElementById('rentalCost').value = d.rentalCost;
-        document.getElementById('loanTerm').value = d.loanTerm;
-        document.getElementById('monthlyBudget').value = d.monthlyBudget;
-        document.getElementById('notarisCost').value = d.notarisCost;
-        document.getElementById('registrationCost').value = d.registrationCost;
-        document.getElementById('prepaymentPenalty').value = d.prepaymentPenalty;
-        document.getElementById('realEstateGrowth').value = d.realEstateGrowth;
-        document.getElementById('investmentReturn').value = d.investmentReturn;
-        document.getElementById('bankRate').value = d.bankRate;
-        document.getElementById('scenarioName').value = name;
-        document.getElementById('maintenanceCost').value = d.maintenanceCost;
-        showResults(scenarios[name]);
-    }
-}
-
-function simulate(inputs) {
-    let years = inputs.loanTerm;
-    let buyWorth = [];
-    let investWorth = [];
-    let houseValue = inputs.housePrice;
-    let loan = inputs.housePrice - inputs.downPayment;
-    let notarisCost = inputs.housePrice * (inputs.notarisCost/100);
-    let registrationCost = inputs.housePrice * (inputs.registrationCost/100);
-    let totalCosts = inputs.downPayment + notarisCost + registrationCost;
-    let investCapital = totalCosts;
-    let monthlyLoanRate = (inputs.bankRate/100)/12;
-    let monthlyLoanPayment = loan * monthlyLoanRate / (1 - Math.pow(1 + monthlyLoanRate, -years*12));
-    let buyLoanBalance = loan;
-    let investBalance = investCapital;
-    let yearlyRows = [];
-    // Year 0
-    buyWorth.push({ year: 0, value: houseValue - buyLoanBalance });
-    investWorth.push({ year: 0, value: investBalance });
-    yearlyRows.push({
-        year: 0,
-        houseValue: houseValue,
-        loanBalance: buyLoanBalance,
-        interest: 0,
-        principal: 0,
-        penalty: 0,
-        maintenance: 0,
-        buyNetWorth: houseValue - buyLoanBalance,
-        investBalance: investBalance,
-        investNetWorth: investBalance,
-        rentPaid: 0
-    });
-    for (let y = 1; y <= years; y++) {
-        houseValue *= (1 + inputs.realEstateGrowth/100);
-        let interest = buyLoanBalance * (inputs.bankRate/100);
-        let principal = Math.min(monthlyLoanPayment*12 - interest, buyLoanBalance);
-        buyLoanBalance -= principal;
-        let penalty = (y === years) ? buyLoanBalance * (inputs.prepaymentPenalty/100) : 0;
-        let maintenance = inputs.housePrice * (inputs.maintenanceCost/100);
-        let buyNetWorth = houseValue - buyLoanBalance - penalty - maintenance * y;
-        investBalance = investBalance * (1 + inputs.investmentReturn/100);
-        investBalance += (inputs.monthlyBudget - inputs.rentalCost) * 12;
-        let investNetWorth = investBalance;
-        let rentPaid = inputs.rentalCost * 12;
-        buyWorth.push({ year: y, value: buyNetWorth });
-        investWorth.push({ year: y, value: investNetWorth });
-        yearlyRows.push({
-            year: y,
-            houseValue: houseValue,
-            loanBalance: buyLoanBalance,
-            interest: interest,
-            principal: principal,
-            penalty: penalty,
-            maintenance: maintenance,
-            buyNetWorth: buyNetWorth,
-            investBalance: investBalance,
-            investNetWorth: investNetWorth,
-            rentPaid: rentPaid
-        });
-    }
-    return { buyWorth, investWorth, years, inputs, yearlyRows };
-}
-
-function showResults(data) {
-    let table = `<table><thead><tr>
-        <th title='Year of simulation'>Year</th>
-        <th title='Net worth if you bought the house'>Buy Net Worth (€)</th>
-        <th title='Net worth if you invested in S&P'>Invest Net Worth (€)</th>
-    </tr></thead><tbody>`;
-    for (let i = 0; i <= data.years; i++) {
-        table += `<tr><td>${i}</td><td>${data.buyWorth[i].value.toFixed(2)}</td><td>${data.investWorth[i].value.toFixed(2)}</td></tr>`;
-    }
-    table += '</tbody></table>';
-    document.getElementById('results').innerHTML = table;
-    plotResults(data);
-    renderYearlyDetails(data.yearlyRows);
-}
-
-function renderYearlyDetails(rows) {
-    const explain = {
-        houseValue: 'Home Value = Previous Home Value × (1 + Appreciation Rate). Uses: Previous Home Value, Real Estate Growth',
-        loanBalance: 'Mortgage Balance = Previous Year Balance - Principal Paid. Uses: Previous Mortgage Balance, Principal Paid',
-        interest: 'Interest Paid = Mortgage Balance × Interest Rate. Uses: Mortgage Balance, Bank Rate',
-        principal: 'Principal Paid = Total Payment - Interest Paid. Uses: Total Payment, Interest Paid',
-        penalty: 'Prepayment Penalty = Remaining Loan × Penalty Rate (only last year). Uses: Remaining Loan, Prepayment Penalty',
-        maintenance: 'Maintenance = Initial House Price × Maintenance Rate. Uses: House Price, Maintenance Cost',
-        buyNetWorth: 'Buy Net Worth = Home Value - Mortgage Balance - Penalty - Maintenance (cumulative). Uses: Home Value, Mortgage Balance, Penalty, Maintenance',
-        investBalance: 'Investment Balance = Previous Balance × (1 + Investment Return) + (Monthly Budget - Rent) × 12. Uses: Previous Balance, Investment Return, Monthly Budget, Rent',
-        investNetWorth: 'Invest Net Worth = Investment Balance. Uses: Investment Balance',
-        rentPaid: 'Rent Paid = Monthly Rent × 12. Uses: Rental Cost'
-    };
-    let html = `<table class=\"ytab\"><thead><tr>
-        <th>Year</th>
-        <th>Home Value</th>
-        <th>Mortgage Balance</th>
-        <th>Interest Paid</th>
-        <th>Principal Paid</th>
-        <th>Prepayment Penalty</th>
-        <th>Maintenance</th>
-        <th>Buy Net Worth</th>
-        <th>Investment Balance</th>
-        <th>Invest Net Worth</th>
-        <th>Rent Paid</th>
-    </tr></thead><tbody>`;
-    for (const r of rows) {
-        html += `<tr>
-            <td>${r.year}</td>
-            <td>${r.houseValue.toFixed(2)}<span class=\"tooltip\">${explain.houseValue}</span></td>
-            <td>${r.loanBalance.toFixed(2)}<span class=\"tooltip\">${explain.loanBalance}</span></td>
-            <td>${r.interest.toFixed(2)}<span class=\"tooltip\">${explain.interest}</span></td>
-            <td>${r.principal.toFixed(2)}<span class=\"tooltip\">${explain.principal}</span></td>
-            <td>${r.penalty.toFixed(2)}<span class=\"tooltip\">${explain.penalty}</span></td>
-            <td>${r.maintenance.toFixed(2)}<span class=\"tooltip\">${explain.maintenance}</span></td>
-            <td>${r.buyNetWorth.toFixed(2)}<span class=\"tooltip\">${explain.buyNetWorth}</span></td>
-            <td>${r.investBalance.toFixed(2)}<span class=\"tooltip\">${explain.investBalance}</span></td>
-            <td>${r.investNetWorth.toFixed(2)}<span class=\"tooltip\">${explain.investNetWorth}</span></td>
-            <td>${r.rentPaid.toFixed(2)}<span class=\"tooltip\">${explain.rentPaid}</span></td>
-        </tr>`;
-    }
-    html += '</tbody></table>';
-    document.getElementById('yearlyDetailsContainer').innerHTML = html;
-}
-
-function plotResults(data) {
-    const ctx = document.getElementById('plot').getContext('2d');
-    if (window.resultChart) window.resultChart.destroy();
-    window.resultChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: data.buyWorth.map(x => x.year),
-            datasets: [
-                {
-                    label: 'Buy Net Worth',
-                    data: data.buyWorth.map(x => x.value),
-                    borderColor: 'blue',
-                    fill: false
-                },
-                {
-                    label: 'Invest Net Worth',
-                    data: data.investWorth.map(x => x.value),
-                    borderColor: 'green',
-                    fill: false
-                }
-            ]
-        },
-        options: {
-            responsive: false,
-            plugins: {
-                legend: { position: 'top' },
-                tooltip: { enabled: true }
-            },
-            scales: {
-                x: { title: { display: true, text: 'Year' } },
-                y: { title: { display: true, text: 'Net Worth (€)' } }
-            }
-        }
-    });
-}
-
-function updateIntermediateResults() {
-    const housePrice = +document.getElementById('housePrice').value || 0;
-    const notarisPct = +document.getElementById('notarisCost').value || 0;
-    const registrationPct = +document.getElementById('registrationCost').value || 0;
-    const maintenancePct = +document.getElementById('maintenanceCost').value || 0;
-    const downPayment = +document.getElementById('downPayment').value || 0;
-    const monthlyBudget = +document.getElementById('monthlyBudget').value || 0;
-    const rentalCost = +document.getElementById('rentalCost').value || 0;
-    const notarisCost = housePrice * (notarisPct/100);
-    const registrationCost = housePrice * (registrationPct/100);
-    const maintenanceCost = housePrice * (maintenancePct/100);
-    const totalInitialCosts = downPayment + notarisCost + registrationCost;
-    const investmentCapacity = monthlyBudget - rentalCost;
-    document.getElementById('intermediateResults').innerHTML = `
-        <fieldset style='border:1px solid #ccc; padding:15px;'>
-        <legend><b>Calculated Intermediate Variables</b></legend>
-        <ul style='list-style:none; padding-left:0;'>
-            <li><b>Notaris Costs:</b> €${notarisCost.toFixed(2)}</li>
-            <li><b>Registration Costs:</b> €${registrationCost.toFixed(2)}</li>
-            <li><b>Maintenance Costs (per year):</b> €${maintenanceCost.toFixed(2)}</li>
-            <li><b>Total Initial Costs (Down Payment + Notaris + Registration):</b> €${totalInitialCosts.toFixed(2)}</li>
-            <li><b>Investment Capacity (Monthly Budget - Rent):</b> €${investmentCapacity.toFixed(2)} per month</li>
-        </ul>
-        </fieldset>
+function updateStrategyInputs(idx) {
+  const fixed = {
+    cashAtHand: +document.getElementById('cashAtHand').value,
+    monthlyAllowance: +document.getElementById('monthlyAllowance').value,
+    interestRate: +document.getElementById('interestRate').value
+  };
+  const form = document.getElementById(`strategyForm${idx}`);
+  const housePrice = +form.housePrice.value;
+  const initialDeposit = +form.initialDeposit.value;
+  const loanTerm = +form.loanTerm.value;
+  // Check deposit vs cash at hand
+  const msgDiv = document.getElementById(`monthlyAllowanceMsg${idx}`);
+  if (initialDeposit > fixed.cashAtHand) {
+    msgDiv.textContent = 'Error: Initial deposit cannot exceed cash at hand!';
+  } else {
+    msgDiv.textContent = '';
+  }
+  // Calculate monthly payment for real estate
+  const loan = housePrice - initialDeposit;
+  const monthlyLoanRate = (fixed.interestRate/100)/12;
+  const monthlyRE = loan * monthlyLoanRate / (1 - Math.pow(1 + monthlyLoanRate, -loanTerm*12));
+  form.monthlyRE.value = monthlyRE.toFixed(2);
+  // Calculate monthly maintenance cost
+  const maintenanceRate = +document.getElementById('maintenanceCosts').value;
+  const monthlyMaintenance = housePrice * (maintenanceRate / 100) / 12;
+  form.monthlyMaintenance.value = monthlyMaintenance.toFixed(2);
+  // Check monthly allowance
+  let remainder = fixed.monthlyAllowance - monthlyRE - monthlyMaintenance;
+  form.monthlyRemainder.value = remainder > 0 ? remainder.toFixed(2) : 0;
+  // Add hover tooltip to remainder input (for accessibility, in addition to custom tooltip)
+  form.monthlyRemainder.title = "Remainder for Stocks/Bonds (€) = Max Investable Monthly Allowance - Loan Monthly Payment - Monthly Maintenance Costs";
+  // Show/hide custom tooltip on hover for remainder
+  const remainderInput = form.monthlyRemainder;
+  const remainderTooltip = remainderInput.parentElement.querySelector('.tooltip');
+  if (remainderTooltip) {
+    // Get actual values for the formula
+    const allowance = fixed.monthlyAllowance.toFixed(2);
+    const loanPay = monthlyRE.toFixed(2);
+    const maint = monthlyMaintenance.toFixed(2);
+    const remainderVal = form.monthlyRemainder.value;
+    remainderTooltip.innerHTML = `monthly allowance (${allowance}) - loan (${loanPay}) - maintenance (${maint}) = <b>${remainderVal}</b>`;
+    remainderInput.addEventListener('mouseenter', () => { remainderTooltip.style.visibility = 'visible'; remainderTooltip.style.opacity = '1'; });
+    remainderInput.addEventListener('mouseleave', () => { remainderTooltip.style.visibility = 'hidden'; remainderTooltip.style.opacity = '0'; });
+  }
+  // Show/hide custom tooltip on hover for loan monthly payment
+  const loanInput = form.monthlyRE;
+  const loanTooltip = loanInput.parentElement.querySelector('.tooltip');
+  if (loanTooltip) {
+    const loanAmount = housePrice - initialDeposit;
+    const monthlyRate = (fixed.interestRate/100/12).toFixed(5);
+    const nMonths = loanTerm*12;
+    loanTooltip.innerHTML = `Loan Monthly Payment (€) = (Loan Amount × Monthly Interest Rate) / (1 - (1 + Monthly Interest Rate)<sup>-${nMonths}</sup>)<br><br>Values: loan (${loanAmount}) × rate (${monthlyRate}) / (1 - (1 + ${monthlyRate})<sup>-${nMonths}</sup>) = <b>${form.monthlyRE.value}</b>`;
+    loanInput.addEventListener('mouseenter', () => { loanTooltip.style.visibility = 'visible'; loanTooltip.style.opacity = '1'; });
+    loanInput.addEventListener('mouseleave', () => { loanTooltip.style.visibility = 'hidden'; loanTooltip.style.opacity = '0'; });
+  }
+  // Show/hide custom tooltip on hover for monthly maintenance
+  const maintInput = form.monthlyMaintenance;
+  const maintTooltip = maintInput.parentElement.querySelector('.tooltip');
+  if (maintTooltip) {
+    maintTooltip.innerHTML = `Monthly Maintenance Costs (€) = House Price × Maintenance Rate / 12<br><br>Values: ${housePrice} × ${document.getElementById('maintenanceCosts').value}% / 12 = <b>${form.monthlyMaintenance.value}</b>`;
+    maintInput.addEventListener('mouseenter', () => { maintTooltip.style.visibility = 'visible'; maintTooltip.style.opacity = '1'; });
+    maintInput.addEventListener('mouseleave', () => { maintTooltip.style.visibility = 'hidden'; maintTooltip.style.opacity = '0'; });
+  }
+  const remainderMsg = document.getElementById(`remainderMsg${idx}`);
+  if (remainder < 0) {
+    remainderMsg.textContent = 'Error: Monthly real estate payment plus maintenance exceeds max investable monthly allowance!';
+  } else {
+    remainderMsg.textContent = '';
+  }
+  // Show split inputs only if remainder > 0
+  const splitDiv = document.getElementById(`splitInputs${idx}`);
+  if (remainder > 0) {
+    const stocksPct = strategies[idx].splits.stocks;
+    const bondsPct = 100 - stocksPct;
+    const stocksVal = ((remainder * stocksPct / 100)).toFixed(2);
+    const bondsVal = ((remainder * bondsPct / 100)).toFixed(2);
+    splitDiv.innerHTML = `
+      <div style="display: flex; flex-direction: column; align-items: flex-start;">
+        <label style="font-size: 18px;">Stocks %</label>
+        <input type="number" name="stocks" min="0" max="100" value="${stocksPct}" style="width: 60px; font-size: 18px; padding: 6px;">
+        <span id="stocksNominal${idx}" style="font-size: 16px; color: #888; margin-top: 2px;">${stocksVal} €</span>
+      </div>
+      <div style="display: flex; flex-direction: column; align-items: flex-start;">
+        <label style="font-size: 18px;">Bonds %</label>
+        <input type="number" name="bonds" value="${bondsPct}" style="width: 60px; font-size: 18px; padding: 6px; background: #eee; color: #888;" readonly>
+        <span id="bondsNominal${idx}" style="font-size: 16px; color: #888; margin-top: 2px;">${bondsVal} €</span>
+      </div>
     `;
+    // Add listener for stocks input only
+    splitDiv.querySelector("[name='stocks']").addEventListener('input', () => {
+      const stocksInput = splitDiv.querySelector("[name='stocks']");
+      let stocksPctNew = +stocksInput.value;
+      if (stocksPctNew < 0) stocksPctNew = 0;
+      if (stocksPctNew > 100) stocksPctNew = 100;
+      strategies[idx].splits.stocks = stocksPctNew;
+      const bondsPctNew = 100 - stocksPctNew;
+      splitDiv.querySelector("[name='bonds']").value = bondsPctNew;
+      splitDiv.querySelector(`#stocksNominal${idx}`).textContent = ((remainder * stocksPctNew / 100).toFixed(2)) + ' €';
+      splitDiv.querySelector(`#bondsNominal${idx}`).textContent = ((remainder * bondsPctNew / 100).toFixed(2)) + ' €';
+      runStrategySimulation(idx);
+    });
+  } else {
+    splitDiv.innerHTML = '';
+  }
 }
 
-['housePrice','notarisCost','registrationCost','maintenanceCost','downPayment','monthlyBudget','rentalCost'].forEach(id => {
-    document.getElementById(id).addEventListener('input', updateIntermediateResults);
-});
-window.onload = function() {
-    updateScenarioList();
-    updateIntermediateResults();
-};
+// Add listeners for fixed variables to auto-update all strategies and graph
+function addFixedVarListeners() {
+  const fixedForm = document.getElementById('fixedVarsForm');
+  Array.from(fixedForm.elements).forEach(el => {
+    el.addEventListener('input', () => {
+      // Re-render all tabs and update graph
+      renderTabButtons();
+      renderStrategyTab(document.querySelector('.tab-buttons button.active')?.textContent === strategies[0].name ? 0 :
+                        document.querySelector('.tab-buttons button.active')?.textContent === strategies[1].name ? 1 : 2);
+      updateNetWorthGraph();
+    });
+  });
+}
 
-document.getElementById('simForm').onsubmit = function(e) {
-    e.preventDefault();
-    let inputs = {
-        housePrice: +document.getElementById('housePrice').value,
-        downPayment: +document.getElementById('downPayment').value,
-        rentalCost: +document.getElementById('rentalCost').value,
-        loanTerm: +document.getElementById('loanTerm').value,
-        monthlyBudget: +document.getElementById('monthlyBudget').value,
-        notarisCost: +document.getElementById('notarisCost').value,
-        registrationCost: +document.getElementById('registrationCost').value,
-        realEstateGrowth: +document.getElementById('realEstateGrowth').value,
-        investmentReturn: +document.getElementById('investmentReturn').value,
-        bankRate: +document.getElementById('bankRate').value,
-        prepaymentPenalty: +document.getElementById('prepaymentPenalty').value,
-        maintenanceCost: +document.getElementById('maintenanceCost').value
-    };
-    let scenarioName = document.getElementById('scenarioName').value.trim();
-    let result = simulate(inputs);
-    saveScenario(scenarioName, result);
-    showResults(result);
-};
+function runStrategySimulation(idx) {
+  // Get fixed vars
+  const fixed = {
+    cashAtHand: +document.getElementById('cashAtHand').value,
+    interestRate: +document.getElementById('interestRate').value,
+    monthlyAllowance: +document.getElementById('monthlyAllowance').value,
+    avgStockReturn: +document.getElementById('avgStockReturn').value,
+    avgRealEstateReturn: +document.getElementById('avgRealEstateReturn').value,
+    avgBondReturn: +document.getElementById('avgBondReturn').value,
+    prepaymentPenalty: +document.getElementById('prepaymentPenalty').value,
+    registrationTax: +document.getElementById('registrationTax').value,
+    maintenanceCosts: +document.getElementById('maintenanceCosts').value
+  };
+  // Get strategy vars
+  const form = document.getElementById(`strategyForm${idx}`);
+  const housePrice = +form.housePrice.value;
+  const initialDeposit = +form.initialDeposit.value;
+  const loanTerm = +form.loanTerm.value;
+  const monthlyRE = +form.monthlyRE.value;
+  const monthlyRemainder = +form.monthlyRemainder.value;
+  let stocks = 0, bonds = 0;
+  if (monthlyRemainder > 0) {
+    stocks = form.querySelector("[name='stocks']") ? +form.querySelector("[name='stocks']").value : strategies[idx].splits.stocks;
+    bonds = form.querySelector("[name='bonds']") ? +form.querySelector("[name='bonds']").value : strategies[idx].splits.bonds;
+  }
+  // Simulate strategy
+  const result = simulateStrategy(fixed, housePrice, initialDeposit, loanTerm, monthlyRE, monthlyRemainder, stocks, bonds);
+  renderStrategyTable(idx, result);
+  updateNetWorthGraph();
+}
 
-window.onload = updateScenarioList;
-
-document.querySelector(".collapsible").addEventListener("click", function() {
-    this.classList.toggle("active");
-    var content = this.nextElementSibling;
-    if (content.style.display === "block") {
-        content.style.display = "none";
-    } else {
-        content.style.display = "block";
+function simulateStrategy(fixed, housePrice, initialDeposit, loanTerm, monthlyRE, monthlyRemainder, stocks, bonds) {
+  const years = loanTerm;
+  let rows = [];
+  // Initial cash at hand
+  let investedCash = fixed.cashAtHand - initialDeposit;
+  let registrationTax = housePrice * (fixed.registrationTax/100);
+  let realEstateValue = housePrice;
+  let realEstateBalance = housePrice - initialDeposit;
+  let stockBalance = investedCash * (stocks/100);
+  let bondBalance = investedCash * (bonds/100);
+  let loanBalance = housePrice - initialDeposit;
+  for (let y = 0; y <= years; y++) {
+    let penalty = 0;
+    if (loanBalance > 0 && y < years) {
+      penalty = loanBalance * (fixed.prepaymentPenalty/100);
     }
-});
+    // maintenance is now part of the investible amount, not subtracted from net worth
+    if (y > 0) {
+      realEstateValue *= (1 + fixed.avgRealEstateReturn/100);
+      // Use monthlyRemainder divided by 12 for monthly investment
+      stockBalance = (stockBalance + (monthlyRemainder/12) * (stocks/100) * 12) * (1 + fixed.avgStockReturn/100);
+      bondBalance = (bondBalance + (monthlyRemainder/12) * (bonds/100) * 12) * (1 + fixed.avgBondReturn/100);
+      // Amortize loan
+      let monthlyLoanRate = (fixed.interestRate/100)/12;
+      let interestPaid = loanBalance * monthlyLoanRate * 12;
+      let principalPaid = Math.min(monthlyRE * 12 - interestPaid, loanBalance);
+      loanBalance -= principalPaid;
+      if (loanBalance < 0) loanBalance = 0;
+    }
+    // Net worth = real estate + stocks + bonds - loan balance - penalty - registration tax (only at t=0)
+    let netWorth = realEstateValue + stockBalance + bondBalance - loanBalance - penalty;
+    if (y === 0) netWorth -= registrationTax;
+    rows.push({
+      year: y,
+      realEstateValue,
+      stockBalance,
+      bondBalance,
+      loanBalance,
+      penalty,
+      registrationTax: y === 0 ? registrationTax : 0,
+      maintenance: 0,
+      netWorth
+    });
+  }
+  return rows;
+}
+
+function renderStrategyTable(idx, rows) {
+  let html = `<table class="ytab"><thead><tr>
+    <th>Year</th>
+    <th>Real Estate Value</th>
+    <th>Stock Balance</th>
+    <th>Bond Balance</th>
+    <th>Loan Balance</th>
+    <th>Prepayment Penalty</th>
+    <th>Registration Tax</th>
+    <th>Net Worth</th>
+  </tr></thead><tbody>`;
+  for (const r of rows) {
+    html += `<tr>
+      <td>${r.year}</td>
+      <td>${r.realEstateValue.toFixed(2)}<span class="tooltip">Real Estate Value = Previous × (1 + Real Estate Return)</span></td>
+      <td>${r.stockBalance.toFixed(2)}<span class="tooltip">Stock Balance = Previous × (1 + Stock Return)</span></td>
+      <td>${r.bondBalance.toFixed(2)}<span class="tooltip">Bond Balance = Previous × (1 + Bond Return)</span></td>
+      <td>${r.loanBalance.toFixed(2)}<span class="tooltip">Loan Balance = Remaining mortgage principal</span></td>
+      <td>${r.penalty.toFixed(2)}<span class="tooltip">Prepayment Penalty = Remaining Loan × Penalty Rate (if not last year)</span></td>
+      <td>${r.registrationTax.toFixed(2)}<span class="tooltip">Registration Tax = House Price × Registration Tax Rate (only at t=0)</span></td>
+      <td>${r.netWorth.toFixed(2)}<span class="tooltip">Net Worth = Real Estate + Stocks + Bonds - Loan Balance - Penalty - Registration Tax (t=0)</span></td>
+    </tr>`;
+  }
+  html += '</tbody></table>';
+  document.getElementById(`strategyTable${idx}`).innerHTML = html;
+}
+
+function updateNetWorthGraph() {
+  // For each strategy, get net worth over time
+  let datasets = [];
+  strategies.forEach((s, idx) => {
+    const fixed = {
+      interestRate: +document.getElementById('interestRate').value,
+      monthlyAllowance: +document.getElementById('monthlyAllowance').value,
+      avgStockReturn: +document.getElementById('avgStockReturn').value,
+      avgRealEstateReturn: +document.getElementById('avgRealEstateReturn').value,
+      avgBondReturn: +document.getElementById('avgBondReturn').value,
+      cashAtHand: +document.getElementById('cashAtHand').value
+    };
+    // Always use the current values from the tab forms
+    const form = document.getElementById(`strategyForm${idx}`);
+    let housePrice, initialDeposit, loanTerm, monthlyRE, monthlyRemainder, stocks, bonds;
+    if (form) {
+      housePrice = +form.housePrice.value;
+      initialDeposit = +form.initialDeposit.value;
+      loanTerm = +form.loanTerm.value;
+      monthlyRE = +form.monthlyRE.value;
+      monthlyRemainder = +form.monthlyRemainder.value;
+      if (monthlyRemainder > 0) {
+        stocks = form.querySelector("[name='stocks']") ? +form.querySelector("[name='stocks']").value : s.splits.stocks;
+        bonds = form.querySelector("[name='bonds']") ? +form.querySelector("[name='bonds']").value : s.splits.bonds;
+      } else {
+        stocks = 0;
+        bonds = 0;
+      }
+    } else {
+      // fallback to default strategy values if form not rendered yet
+      housePrice = 400000;
+      initialDeposit = 80000;
+      loanTerm = 30;
+      monthlyRE = 1200;
+      monthlyRemainder = 800;
+      stocks = s.splits.stocks;
+      bonds = s.splits.bonds;
+    }
+    const rows = simulateStrategy(fixed, housePrice, initialDeposit, loanTerm, monthlyRE, monthlyRemainder, stocks, bonds);
+    datasets.push({
+      label: s.name,
+      data: rows.map(r => r.netWorth),
+      borderColor: idx === 0 ? 'blue' : idx === 1 ? 'green' : 'orange',
+      fill: false,
+      tension: 0.1
+    });
+  });
+  // Use the max loan term among all strategies for x axis
+  const maxYears = Math.max(...strategies.map((s, idx) => {
+    const form = document.getElementById(`strategyForm${idx}`);
+    return form ? +form.loanTerm.value : 30;
+  }));
+  const years = Array.from({length: maxYears + 1}, (_, i) => i);
+  const ctx = document.getElementById('plot').getContext('2d');
+  if (window.resultChart) window.resultChart.destroy();
+  window.resultChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: years,
+      datasets: datasets
+    },
+    options: {
+      responsive: false,
+      plugins: {
+        legend: { position: 'top' },
+        tooltip: { enabled: true }
+      },
+      scales: {
+        x: { title: { display: true, text: 'Year' } },
+        y: { title: { display: true, text: 'Net Worth (€)' } }
+      }
+    }
+  });
+}
+
+window.onload = function() {
+  renderTabButtons();
+  renderStrategyTab(0);
+  addFixedVarListeners();
+  updateNetWorthGraph();
+};
 </script>
 </body>
 </html>

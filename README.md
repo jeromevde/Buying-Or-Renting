@@ -1,7 +1,11 @@
 ## Buy vs Invest Financial Simulator
 
+![buy_vs_rent](buy_vs_rent.png)
 ### How to Run
-Just open `index.html` directly in your browser.
+
+https://jeromevde.github.io/Buying-Or-Renting/
+
+Or, just open `index.html` directly in your browser.
 
 Or, to serve locally for testing:
 ```bash
