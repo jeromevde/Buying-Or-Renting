@@ -250,6 +250,21 @@
             border-radius: 6px;
             background: #fff;
         }
+        
+        /* Simulation controls */
+        .simulation-controls {
+            padding: 10px 12px;
+            background: #f0f0f0;
+            border-bottom: 1px solid #ccc;
+            display: flex;
+            align-items: center;
+        }
+        
+        .simulation-controls label {
+            font-size: 16px;
+            font-weight: bold;
+            min-width: auto;
+        }
     </style>
 </head>
 <body>
@@ -353,6 +368,10 @@ function initializeAllStrategies() {
       </section>
       <section class="strategy-section simulation">
         <h3>Simulation Table</h3>
+        <div class="simulation-controls">
+          <label for="simulationYears${idx}">Years to simulate:</label>
+          <input type="number" id="simulationYears${idx}" min="1" max="50" value="30" style="width: 60px; margin-left: 8px;">
+        </div>
         <div id="strategyTable${idx}" class="section-content"></div>
       </section>
     </div>
@@ -390,6 +409,16 @@ function initializeStrategy(idx) {
   renderVerticalTabContent(idx, selectedTab);
   updateStrategyInputs(idx);
   runStrategySimulation(idx, true); // Skip individual graph updates during init
+  
+  // Add event listener for simulation years input
+  const simulationYearsInput = document.getElementById(`simulationYears${idx}`);
+  if (simulationYearsInput) {
+    simulationYearsInput.addEventListener('input', () => {
+      console.log('📝 Simulation years changed for idx:', idx);
+      runStrategySimulation(idx);
+      updateNetWorthGraph();
+    });
+  }
 }
 
 function renderStrategyTab(idx) {
@@ -734,7 +763,7 @@ function runStrategySimulation(idx, skipGraphUpdate = false) {
     monthlyRE = 1200;
     monthlyRemainder = 800;
   }
-  const result = simulateStrategy(fixed, housePrice, initialDeposit, loanTerm, monthlyRE, monthlyRemainder, stocks, bonds);
+  const result = simulateStrategy(fixed, housePrice, initialDeposit, loanTerm, monthlyRE, monthlyRemainder, stocks, bonds, idx);
   strategyInputs[idx].simRows = result;
   renderStrategyTable(idx, result);
   // Only update the graph if not skipping
@@ -744,9 +773,10 @@ function runStrategySimulation(idx, skipGraphUpdate = false) {
   }
 }
 
-function simulateStrategy(fixed, housePrice, initialDeposit, loanTerm, monthlyRE, monthlyRemainder, stocks, bonds) {
-  // Always simulate for 30 years regardless of loan term
-  const simulationYears = 30;
+function simulateStrategy(fixed, housePrice, initialDeposit, loanTerm, monthlyRE, monthlyRemainder, stocks, bonds, strategyIdx) {
+  // Get simulation years from the input field, default to 30 if not found
+  const simulationYearsInput = document.getElementById(`simulationYears${strategyIdx}`);
+  const simulationYears = simulationYearsInput ? +simulationYearsInput.value : 30;
   let rows = [];
   
   // Initial setup
