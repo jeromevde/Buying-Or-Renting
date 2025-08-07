@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title> Financial Investment Simulator</title>
+    <title> Investment Simulator</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 40px; font-size: 18px; }
         .container { max-width: 1400px; margin: auto; display: flex; flex-direction: row; }
@@ -442,7 +442,7 @@
         </form>
     </aside>
     <main style="flex: 1;">
-        <h1> Financial Investment Simulator</h1>
+        <h1> Investment Simulator</h1>
         <div class="graph-container">
             <canvas id="plot"></canvas>
         </div>
@@ -493,6 +493,72 @@ let strategyInputs = strategies.map((strategy, idx) => ({
 
 let currentPopupStrategyIndex = -1;
 let popupMode = 'edit'; // 'edit' or 'add'
+
+// Cookie management functions
+function saveStateToCookies() {
+  try {
+    // Save fixed variables
+    const fixedVars = {
+      cashAtHand: document.getElementById('cashAtHand').value,
+      interestRate: document.getElementById('interestRate').value,
+      monthlyAllowance: document.getElementById('monthlyAllowance').value,
+      avgStockReturn: document.getElementById('avgStockReturn').value,
+      avgRealEstateReturn: document.getElementById('avgRealEstateReturn').value,
+      avgBondReturn: document.getElementById('avgBondReturn').value,
+      capitalGainsTax: document.getElementById('capitalGainsTax').value,
+      prepaymentPenalty: document.getElementById('prepaymentPenalty').value,
+      registrationTax: document.getElementById('registrationTax').value,
+      maintenanceCosts: document.getElementById('maintenanceCosts').value,
+      simulationYears: document.getElementById('simulationYears').value
+    };
+    
+    // Save strategies and their inputs
+    const strategiesData = {
+      strategies: strategies,
+      strategyInputs: strategyInputs,
+      nextStrategyId: nextStrategyId,
+      currentStrategyId: currentStrategyId
+    };
+    
+    // Use localStorage instead of cookies for better capacity
+    localStorage.setItem('financialSimulator_fixedVars', JSON.stringify(fixedVars));
+    localStorage.setItem('financialSimulator_strategies', JSON.stringify(strategiesData));
+    
+  } catch (error) {
+    console.error('Error saving state to localStorage:', error);
+  }
+}
+
+function loadStateFromCookies() {
+  try {
+    // Load fixed variables
+    const fixedVarsData = localStorage.getItem('financialSimulator_fixedVars');
+    if (fixedVarsData) {
+      const fixedVars = JSON.parse(fixedVarsData);
+      Object.keys(fixedVars).forEach(key => {
+        const element = document.getElementById(key);
+        if (element) {
+          element.value = fixedVars[key];
+        }
+      });
+    }
+    
+    // Load strategies
+    const strategiesData = localStorage.getItem('financialSimulator_strategies');
+    if (strategiesData) {
+      const data = JSON.parse(strategiesData);
+      strategies = data.strategies || strategies;
+      strategyInputs = data.strategyInputs || strategyInputs;
+      nextStrategyId = data.nextStrategyId || nextStrategyId;
+      currentStrategyId = data.currentStrategyId || currentStrategyId;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error loading state from localStorage:', error);
+    return false;
+  }
+}
 
 function renderTabButtons() {
   const tabButtons = document.getElementById('tabButtons');
@@ -620,6 +686,9 @@ function saveStrategyFromPopup() {
     updateNetWorthGraph(); // Update graph with new name
   }
   
+  // Save state to cookies
+  saveStateToCookies();
+  
   closeStrategyPopup();
 }
 
@@ -651,12 +720,13 @@ function deleteStrategyFromPopup() {
   initializeAllStrategies();
   selectStrategyTab(currentStrategyId);
   
+  // Save state to cookies
+  saveStateToCookies();
+  
   closeStrategyPopup();
 }
 
 function selectStrategyTab(idx) {
-  console.log('🔵 selectStrategyTab called with idx:', idx);
-  
   currentStrategyId = idx;
   
   // Hide all strategy content divs
@@ -677,7 +747,8 @@ function selectStrategyTab(idx) {
     }
   });
   
-  console.log('🔵 selectStrategyTab finished - NO graph update');
+  // Save state to cookies when active strategy changes
+  saveStateToCookies();
 }
 
 function initializeAllStrategies() {
@@ -728,7 +799,6 @@ function initializeStrategy(idx) {
     btn.className = `vertical-tab-button ${tab}${selectedTab === tab ? ' active' : ''}`;
     btn.textContent = tab.charAt(0).toUpperCase() + tab.slice(1);
     btn.onclick = () => {
-      console.log('🟢 Buy/Rent tab clicked for idx:', idx, 'tab:', tab);
       strategyInput.selectedTab = tab;
       renderVerticalTab(idx, tab);
     };
@@ -742,7 +812,6 @@ function initializeStrategy(idx) {
 }
 
 function renderStrategyTab(idx) {
-  console.log('🟠 renderStrategyTab called - this should only be used during initialization');
   const tabContent = document.getElementById('tabContent');
   const strategyInput = strategyInputs.find(input => input.id === strategies[idx].id);
   if (!strategyInput.selectedTab) strategyInput.selectedTab = 'buy';
@@ -772,7 +841,6 @@ function renderStrategyTab(idx) {
 }
 
 function renderVerticalTab(idx, mode) {
-  console.log('🟠 renderVerticalTab called for idx:', idx, 'mode:', mode);
   // Update tab buttons active state
   const tabBtnsDiv = document.getElementById(`verticalTabButtons${idx}`);
   tabBtnsDiv.querySelectorAll('button').forEach(btn => {
@@ -788,9 +856,15 @@ function renderVerticalTab(idx, mode) {
   updateStrategyInputs(idx);
   runStrategySimulation(idx);
   updateNetWorthGraph();
+  
+  // Save state to cookies when mode changes
+  saveStateToCookies();
 }
 
 function renderVerticalTabContent(idx, mode) {
+  // Get saved strategy input values
+  const strategyInput = strategyInputs.find(input => input.id === strategies[idx].id);
+  
   // Render tab content
   const tabDiv = document.getElementById(`verticalTabContent${idx}`);
   if (mode === 'buy') {
@@ -799,11 +873,11 @@ function renderVerticalTabContent(idx, mode) {
         <div class="form-inputs">
           <div class="input-group">
             <label>House Price (€)</label>
-            <input type="number" name="housePrice" value="400000">
+            <input type="number" name="housePrice" value="${strategyInput.housePrice || 400000}">
           </div>
           <div class="input-group">
             <label>Initial Deposit (€)</label>
-            <input type="number" name="initialDeposit" value="100000">
+            <input type="number" name="initialDeposit" value="${strategyInput.initialDeposit || 100000}">
           </div>
           <div class="input-group calculated">
             <label class="calculated-label">Registration Costs (€)</label>
@@ -825,7 +899,7 @@ function renderVerticalTabContent(idx, mode) {
           </div>
           <div class="input-group">
             <label>Loan Term (years)</label>
-            <input type="number" name="loanTerm" value="25">
+            <input type="number" name="loanTerm" value="${strategyInput.loanTerm || 25}">
           </div>
           <div class="input-group calculated">
             <label class="calculated-label">Monthly Loan Payment (€)</label>
@@ -855,7 +929,7 @@ function renderVerticalTabContent(idx, mode) {
         <div class="form-inputs">
           <div class="input-group">
             <label>Monthly Rent (€)</label>
-            <input type="number" name="monthlyRent" value="1500">
+            <input type="number" name="monthlyRent" value="${strategyInput.monthlyRent || 1500}">
           </div>
         </div>
         <div id="monthlyAllowanceMsg${idx}" class="error-message"></div>
@@ -869,10 +943,12 @@ function renderVerticalTabContent(idx, mode) {
   fieldNames.forEach(name => {
     if (form[name]) {
       form[name].addEventListener('input', () => {
-        console.log('📝 Form input changed for idx:', idx, 'field:', name);
         updateStrategyInputs(idx);
         runStrategySimulation(idx);
         updateNetWorthGraph();
+        
+        // Save state to cookies when strategy inputs change
+        saveStateToCookies();
       });
     }
   });
@@ -898,6 +974,7 @@ function updateStrategyInputs(idx) {
     const initialDeposit = +form.initialDeposit.value;
     const loanTerm = +form.loanTerm.value;
     
+    // Save input values to strategyInputs
     strategyInput.housePrice = housePrice;
     strategyInput.initialDeposit = initialDeposit;
     strategyInput.loanTerm = loanTerm;
@@ -966,6 +1043,7 @@ function updateStrategyInputs(idx) {
     
   } else {
     const monthlyRent = +form.monthlyRent.value;
+    // Save input values to strategyInputs
     strategyInput.monthlyRent = monthlyRent;
     strategyInput.loanTerm = 30;
     remainder = fixed.monthlyAllowance - monthlyRent;
@@ -983,20 +1061,21 @@ function updateRemainderSection(idx, remainder, mode, monthlyAllowance) {
     ? `Remainder = Monthly Allowance - Loan Payment - Maintenance`
     : `Remainder = Monthly Allowance - Monthly Rent`;
   
-  remainderSection.innerHTML = `
+    remainderSection.innerHTML = `
     <div class="remainder-section">
       <div class="input-group calculated">
         <label class="calculated-label">Remainder for Stocks/Bonds (€)</label>
-        <input type="number" name="monthlyRemainder" value="${remainderValue}" readonly class="calculated-input">
+        <div style="position: relative;">
+          <input type="number" name="monthlyRemainder" value="${remainderValue}" readonly class="calculated-input">
+          <span class="input-tooltip">${tooltipText}</span>
+        </div>
         <span class="calculated-note">(calculated)</span>
         <span class="tooltip">${tooltipText}</span>
       </div>
       <div id="splitInputs${idx}" class="split-inputs"></div>
     </div>
     <div id="remainderMsg${idx}" class="error-message"></div>
-  `;
-  
-  // Show split inputs only if remainder > 0
+  `;  // Show split inputs only if remainder > 0
   const splitDiv = document.getElementById(`splitInputs${idx}`);
   if (remainder > 0) {
     const stocksPct = strategies[idx].splits.stocks;
@@ -1029,6 +1108,9 @@ function updateRemainderSection(idx, remainder, mode, monthlyAllowance) {
       
       runStrategySimulation(idx);
       updateNetWorthGraph();
+      
+      // Save state to cookies when splits change
+      saveStateToCookies();
     });
   }
   
@@ -1059,6 +1141,8 @@ function addFixedVarListeners() {
         renderStrategyTab(currentStrategyId);
         updateNetWorthGraph();
       }
+      // Save state to cookies when fixed variables change
+      saveStateToCookies();
     });
   });
   
@@ -1076,7 +1160,6 @@ function addFixedVarListeners() {
 }
 
 function runStrategySimulation(idx, skipGraphUpdate = false) {
-  console.log('🟡 runStrategySimulation called for idx:', idx, 'skipGraphUpdate:', skipGraphUpdate);
   // Get fixed vars
   const fixed = {
     cashAtHand: +document.getElementById('cashAtHand').value,
@@ -1141,7 +1224,6 @@ function runStrategySimulation(idx, skipGraphUpdate = false) {
   renderStrategyTable(idx, result);
   // Only update the graph if not skipping
   if (!skipGraphUpdate) {
-    console.log('🔴 updateNetWorthGraph called from runStrategySimulation');
     updateNetWorthGraph(idx);
   }
 }
@@ -1271,8 +1353,6 @@ function renderStrategyTable(idx, rows) {
 }
 
 function updateNetWorthGraph(changedIdx) {
-  console.log('🔴 updateNetWorthGraph called with changedIdx:', changedIdx);
-  console.trace('🔴 Call stack:');
   // Always show all graphs, but only update the changed strategy's data if changedIdx is provided
   const cashAtHand = +document.getElementById('cashAtHand').value;
   // Find the union of all years across all strategies
@@ -1331,6 +1411,10 @@ function updateNetWorthGraph(changedIdx) {
 }
 
 window.onload = function() {
+  // Load state from localStorage first
+  loadStateFromCookies();
+  
+  // Then initialize the UI
   renderTabButtons();
   initializeAllStrategies();
   addFixedVarListeners();
