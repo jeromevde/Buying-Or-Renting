@@ -428,17 +428,17 @@
     <aside>
         <h2>Fixed Variables</h2>
         <form id="fixedVarsForm">
-            <div class="form-row"><label for="cashAtHand">Cash at Hand (€)</label><input type="number" id="cashAtHand" value="100000"></div>
-            <div class="form-row"><label for="interestRate">Interest Rate (%/year)</label><input type="number" id="interestRate" step="0.01" value="3.0"></div>
-            <div class="form-row"><label for="monthlyAllowance">Max Investable Monthly Allowance (€)</label><input type="number" id="monthlyAllowance" value="2000"></div>
-            <div class="form-row"><label for="avgStockReturn">Avg. Stock Return (%/year)</label><input type="number" id="avgStockReturn" step="0.01" value="10.0"></div>
+            <div class="form-row"><label for="cashAtHand">Cash at Hand (€)</label><input type="number" id="cashAtHand" value="80000"></div>
+            <div class="form-row"><label for="interestRate">Loan Interest Rate (%/year)</label><input type="number" id="interestRate" step="0.01" value="3.0"></div>
+            <div class="form-row"><label for="monthlyAllowance">Max Investable Monthly Allowance (€)</label><input type="number" id="monthlyAllowance" value="1500"></div>
+            <div class="form-row"><label for="avgStockReturn">Avg. Stock Return (%/year)</label><input type="number" id="avgStockReturn" step="0.01" value="8.0"></div>
             <div class="form-row"><label for="avgRealEstateReturn">Avg. Real Estate Return (%/year)</label><input type="number" id="avgRealEstateReturn" step="0.01" value="3.0"></div>
             <div class="form-row"><label for="avgBondReturn">Avg. Bond Return (%/year)</label><input type="number" id="avgBondReturn" step="0.01" value="2.0"></div>
             <div class="form-row"><label for="capitalGainsTax">Capital Gains Tax (%)</label><input type="number" id="capitalGainsTax" step="0.01" value="10.0"></div>
             <div class="form-row"><label for="prepaymentPenalty">Prepayment Penalty (% of remaining loan)</label><input type="number" id="prepaymentPenalty" step="0.01" value="1.0"></div>
             <div class="form-row"><label for="registrationTax">Registration Tax (% of house price)</label><input type="number" id="registrationTax" step="0.01" value="6.0"></div>
             <div class="form-row"><label for="maintenanceCosts">Maintenance Costs (% of house price/year)</label><input type="number" id="maintenanceCosts" step="0.01" value="1.0"></div>
-            <div class="form-row"><label for="simulationYears">Simulation Years</label><input type="number" id="simulationYears" min="1" max="50" value="30"></div>
+            <div class="form-row"><label for="simulationYears">Simulation Years</label><input type="number" id="simulationYears" min="1" max="50" value="15"></div>
         </form>
     </aside>
     <main style="flex: 1;">
@@ -481,8 +481,8 @@ let nextStrategyId = 3; // Start from 3 since we have 2 default strategies
 let strategyInputs = strategies.map((strategy, idx) => ({
   id: strategy.id,
   mode: idx === 0 ? 'buy' : 'rent',
-  housePrice: 400000,
-  initialDeposit: 100000,
+  housePrice: 300000,
+  initialDeposit: 80000,
   loanTerm: 25,
   monthlyRent: 1500,
   stocks: 90,
@@ -663,8 +663,8 @@ function saveStrategyFromPopup() {
     const newStrategyInput = {
       id: newStrategy.id,
       mode: 'buy',
-      housePrice: 400000,
-      initialDeposit: 100000,
+      housePrice: 300000,
+      initialDeposit: 80000,
       loanTerm: 25,
       monthlyRent: 1500,
       stocks: 90,
@@ -873,11 +873,11 @@ function renderVerticalTabContent(idx, mode) {
         <div class="form-inputs">
           <div class="input-group">
             <label>House Price (€)</label>
-            <input type="number" name="housePrice" value="${strategyInput.housePrice || 400000}">
+            <input type="number" name="housePrice" value="${strategyInput.housePrice || 300000}">
           </div>
           <div class="input-group">
             <label>Initial Deposit (€)</label>
-            <input type="number" name="initialDeposit" value="${strategyInput.initialDeposit || 100000}">
+            <input type="number" name="initialDeposit" value="${strategyInput.initialDeposit || 80000}">
           </div>
           <div class="input-group calculated">
             <label class="calculated-label">Registration Costs (€)</label>
@@ -1118,8 +1118,8 @@ function updateRemainderSection(idx, remainder, mode, monthlyAllowance) {
   const remainderMsg = document.getElementById(`remainderMsg${idx}`);
   if (remainder < 0) {
     const errorText = mode === 'buy' 
-      ? 'Error: Monthly real estate payment plus maintenance exceeds max investable monthly allowance!'
-      : 'Error: Monthly rent exceeds max investable monthly allowance!';
+      ? 'Error: Monthly real estate payment plus maintenance exceeds max investable monthly allowance! This simulation will go into a debt spiral !!'
+      : 'Error: Monthly rent exceeds max investable monthly allowance! The simulation will go into a debt spiral !!';
     remainderMsg.textContent = errorText;
   } else {
     remainderMsg.textContent = '';
@@ -1212,8 +1212,8 @@ function runStrategySimulation(idx, skipGraphUpdate = false) {
     }
   } else {
     // fallback to default strategy values if form not rendered yet
-    housePrice = 400000;
-    initialDeposit = 100000;
+    housePrice = 300000;
+    initialDeposit = 80000;
     loanTerm = 30;
     monthlyRE = 1200;
     monthlyRemainder = 800;
