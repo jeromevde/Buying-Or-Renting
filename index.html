@@ -238,6 +238,18 @@
             color: #888;
             margin-top: 2px;
         }
+        
+        /* Graph container */
+        .graph-container {
+            width: 100%;
+            max-width: 1400px;
+            overflow-x: auto;
+            overflow-y: hidden;
+            margin: 40px 0 20px 0;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            background: #fff;
+        }
     </style>
 </head>
 <body>
@@ -250,7 +262,8 @@
             <div class="form-row"><label for="monthlyAllowance">Max Investable Monthly Allowance (€)</label><input type="number" id="monthlyAllowance" value="2000"></div>
             <div class="form-row"><label for="avgStockReturn">Avg. Stock Return (%/year)</label><input type="number" id="avgStockReturn" step="0.01" value="10.0"></div>
             <div class="form-row"><label for="avgRealEstateReturn">Avg. Real Estate Return (%/year)</label><input type="number" id="avgRealEstateReturn" step="0.01" value="3.0"></div>
-            <div class="form-row"><label for="avgBondReturn">Avg. Bond Return (%/year)</label><input type="number" id="avgBondReturn" step="0.01" value="3.0"></div>
+            <div class="form-row"><label for="avgBondReturn">Avg. Bond Return (%/year)</label><input type="number" id="avgBondReturn" step="0.01" value="2.0"></div>
+            <div class="form-row"><label for="capitalGainsTax">Capital Gains Tax (%)</label><input type="number" id="capitalGainsTax" step="0.01" value="10.0"></div>
             <div class="form-row"><label for="prepaymentPenalty">Prepayment Penalty (% of remaining loan)</label><input type="number" id="prepaymentPenalty" step="0.01" value="1.0"></div>
             <div class="form-row"><label for="registrationTax">Registration Tax (% of house price)</label><input type="number" id="registrationTax" step="0.01" value="6.0"></div>
             <div class="form-row"><label for="maintenanceCosts">Maintenance Costs (% of house price/year)</label><input type="number" id="maintenanceCosts" step="0.01" value="1.0"></div>
@@ -258,7 +271,9 @@
     </aside>
     <main style="flex: 1;">
         <h1> Financial Investment Simulator</h1>
-        <canvas id="plot" width="1400" height="500" style="margin-bottom: 30px;"></canvas>
+        <div class="graph-container">
+            <canvas id="plot" width="1400" height="500" style="margin-bottom: 30px;"></canvas>
+        </div>
         <div id="netWorthGraph"></div>
         <div class="tabview">
             <div class="tab-buttons" id="tabButtons"></div>
@@ -277,7 +292,7 @@ const strategies = [
 const strategyInputs = strategies.map((strategy, idx) => ({
   mode: idx === 0 ? 'buy' : 'rent',
   housePrice: 400000,
-  initialDeposit: 80000,
+  initialDeposit: 100000,
   loanTerm: 25,
   monthlyRent: 1500,
   stocks: 90,
@@ -434,7 +449,7 @@ function renderVerticalTabContent(idx, mode) {
           </div>
           <div class="input-group">
             <label>Initial Deposit (€)</label>
-            <input type="number" name="initialDeposit" value="80000">
+            <input type="number" name="initialDeposit" value="100000">
           </div>
           <div class="input-group calculated">
             <label class="calculated-label">Registration Costs (€)</label>
@@ -444,7 +459,7 @@ function renderVerticalTabContent(idx, mode) {
           </div>
           <div class="input-group calculated">
             <label class="calculated-label">Loan Balance at t=0 (€)</label>
-            <input type="number" name="loanBalance" value="344000" readonly class="calculated-input">
+            <input type="number" name="loanBalance" value="324000" readonly class="calculated-input">
             <span class="calculated-note">(calculated)</span>
             <span class="tooltip">Loan Balance = House Price - Initial Deposit + Registration Costs</span>
           </div>
@@ -535,6 +550,27 @@ function updateStrategyInputs(idx) {
     form.loanBalance.value = loanBalance.toFixed(2);
     form.monthlyRE.value = monthlyRE.toFixed(2);
     form.monthlyMaintenance.value = monthlyMaintenance.toFixed(2);
+    
+    // Update tooltips with actual values
+    const registrationTooltip = form.querySelector('[name="registrationCosts"]').parentElement.querySelector('.tooltip');
+    if (registrationTooltip) {
+      registrationTooltip.textContent = `Registration Costs = House Price (€${housePrice.toLocaleString()}) × Registration Tax Rate (${registrationTaxRate}%)`;
+    }
+    
+    const loanBalanceTooltip = form.querySelector('[name="loanBalance"]').parentElement.querySelector('.tooltip');
+    if (loanBalanceTooltip) {
+      loanBalanceTooltip.textContent = `Loan Balance = House Price (€${housePrice.toLocaleString()}) - Initial Deposit (€${initialDeposit.toLocaleString()}) + Registration Costs (€${registrationCosts.toLocaleString()})`;
+    }
+    
+    const monthlyRETooltip = form.querySelector('[name="monthlyRE"]').parentElement.querySelector('.tooltip');
+    if (monthlyRETooltip) {
+      monthlyRETooltip.textContent = `Monthly Payment = Loan Balance (€${loanBalance.toLocaleString()}) × Monthly Interest Rate (${(monthlyLoanRate * 100).toFixed(3)}%) / (1 - (1 + Monthly Interest Rate)^(-Loan Term (${loanTerm}) × 12))`;
+    }
+    
+    const maintenanceTooltip = form.querySelector('[name="monthlyMaintenance"]').parentElement.querySelector('.tooltip');
+    if (maintenanceTooltip) {
+      maintenanceTooltip.textContent = `Monthly Maintenance = House Price (€${housePrice.toLocaleString()}) × Maintenance Rate (${maintenanceRate}%) / 12`;
+    }
     
     // Validate initial deposit against cash at hand
     if (initialDeposit > fixed.cashAtHand) {
@@ -648,6 +684,7 @@ function runStrategySimulation(idx, skipGraphUpdate = false) {
     avgStockReturn: +document.getElementById('avgStockReturn').value,
     avgRealEstateReturn: +document.getElementById('avgRealEstateReturn').value,
     avgBondReturn: +document.getElementById('avgBondReturn').value,
+    capitalGainsTax: +document.getElementById('capitalGainsTax').value,
     prepaymentPenalty: +document.getElementById('prepaymentPenalty').value,
     registrationTax: +document.getElementById('registrationTax').value,
     maintenanceCosts: +document.getElementById('maintenanceCosts').value
@@ -664,14 +701,23 @@ function runStrategySimulation(idx, skipGraphUpdate = false) {
       initialDeposit = form.initialDeposit ? +form.initialDeposit.value : 0;
       loanTerm = form.loanTerm ? +form.loanTerm.value : 0;
       monthlyRE = form.monthlyRE ? +form.monthlyRE.value : 0;
-      monthlyRemainder = form.monthlyRemainder ? +form.monthlyRemainder.value : 0;
+      
+      // Calculate maintenance costs
+      const maintenanceRate = +document.getElementById('maintenanceCosts').value;
+      const monthlyMaintenance = housePrice * (maintenanceRate / 100) / 12;
+      
+      // Calculate remainder for buy mode
+      monthlyRemainder = fixed.monthlyAllowance - monthlyRE - monthlyMaintenance;
     } else {
       // Rent mode: set buy-related fields to zero/defaults
       housePrice = 0;
       initialDeposit = 0;
       loanTerm = 30; // Default simulation length for rent
       monthlyRE = 0;
-      monthlyRemainder = form.monthlyRemainder ? +form.monthlyRemainder.value : 0;
+      
+      // Calculate remainder for rent mode
+      const monthlyRent = form.monthlyRent ? +form.monthlyRent.value : 0;
+      monthlyRemainder = fixed.monthlyAllowance - monthlyRent;
     }
     // Get stocks/bonds percentages from form if available
     const stocksInput = form.querySelector("[name='stocks']");
@@ -683,7 +729,7 @@ function runStrategySimulation(idx, skipGraphUpdate = false) {
   } else {
     // fallback to default strategy values if form not rendered yet
     housePrice = 400000;
-    initialDeposit = 80000;
+    initialDeposit = 100000;
     loanTerm = 30;
     monthlyRE = 1200;
     monthlyRemainder = 800;
@@ -719,23 +765,30 @@ function simulateStrategy(fixed, housePrice, initialDeposit, loanTerm, monthlyRE
     realEstateValue = 0;
   }
   
-  let stockBalance = investedCash * (stocks/100);
-  let bondBalance = investedCash * (bonds/100);
-  
+  // At t=0, add monthly leftover to initial stock/bond balance
+  let monthlyStockInvestment = monthlyRemainder * (stocks/100);
+  let monthlyBondInvestment = monthlyRemainder * (bonds/100);
+  let stockBalance = investedCash * (stocks/100) + monthlyStockInvestment * 12;
+  let bondBalance = investedCash * (bonds/100) + monthlyBondInvestment * 12;
+
+  // Track cost basis for capital gains tax calculation
+  let stockCostBasis = investedCash * (stocks/100) + monthlyStockInvestment * 12;
+  let bondCostBasis = investedCash * (bonds/100) + monthlyBondInvestment * 12;
+
   for (let y = 0; y <= simulationYears; y++) {
     let penalty = 0;
     if (loanBalance > 0 && y < loanTerm) {
       penalty = loanBalance * (fixed.prepaymentPenalty/100);
     }
-    
+
     if (y > 0) {
       if (realEstateValue > 0) {
         realEstateValue *= (1 + fixed.avgRealEstateReturn/100);
       }
-      
+
       // Calculate monthly investment amount
       let monthlyInvestment = monthlyRemainder;
-      
+
       // If loan is still active, amortize it
       if (y <= loanTerm && loanBalance > 0) {
         let monthlyLoanRate = (fixed.interestRate/100)/12;
@@ -747,20 +800,33 @@ function simulateStrategy(fixed, housePrice, initialDeposit, loanTerm, monthlyRE
         // Loan is paid off in buy scenario - redirect monthly loan payment to investments
         monthlyInvestment += monthlyRE;
       }
-      
+
       // Invest the available money in stocks and bonds
-      let monthlyStockInvestment = monthlyInvestment * (stocks/100);
-      let monthlyBondInvestment = monthlyInvestment * (bonds/100);
+      monthlyStockInvestment = monthlyInvestment * (stocks/100);
+      monthlyBondInvestment = monthlyInvestment * (bonds/100);
+
+      // New formula: previous_balance * (1+return) + monthly_investment*12
+      stockBalance = stockBalance * (1 + fixed.avgStockReturn/100) + monthlyStockInvestment * 12;
+      bondBalance = bondBalance * (1 + fixed.avgBondReturn/100) + monthlyBondInvestment * 12;
       
-      stockBalance = (stockBalance + monthlyStockInvestment * 12) * (1 + fixed.avgStockReturn/100);
-      bondBalance = (bondBalance + monthlyBondInvestment * 12) * (1 + fixed.avgBondReturn/100);
+      // Update cost basis with new investments
+      stockCostBasis += monthlyStockInvestment * 12;
+      bondCostBasis += monthlyBondInvestment * 12;
     }
-    let netWorth = realEstateValue + stockBalance + bondBalance - loanBalance - penalty;
+    
+    // Calculate capital gains tax (assuming liquidation) - only on stocks
+    let stockGains = Math.max(0, stockBalance - stockCostBasis);
+    let capitalGainsTax = stockGains * (fixed.capitalGainsTax / 100);
+    
+    let netWorth = realEstateValue + stockBalance + bondBalance - loanBalance - penalty - capitalGainsTax;
     let row = {
       year: y,
       realEstateValue,
       stockBalance,
       bondBalance,
+      stockCostBasis,
+      bondCostBasis,
+      capitalGainsTax,
       loanBalance,
       penalty,
       maintenance: 0,
@@ -777,7 +843,9 @@ function renderStrategyTable(idx, rows) {
     <th>Year</th>
     <th>Real Estate Value</th>
     <th>Stock Balance</th>
+    <th>Stocks Cost</th>
     <th>Bond Balance</th>
+    <th>Capital Gains Tax</th>
     <th>Loan Balance</th>
     <th>Prepayment Penalty</th>
     <th>Net Worth</th>
@@ -786,11 +854,13 @@ function renderStrategyTable(idx, rows) {
     html += `<tr>
       <td>${r.year}</td>
       <td>${r.realEstateValue.toFixed(2)}<span class="tooltip">Real Estate Value = Previous × (1 + Real Estate Return)</span></td>
-      <td>${r.stockBalance.toFixed(2)}<span class="tooltip">Stock Balance = Previous × (1 + Stock Return)</span></td>
-      <td>${r.bondBalance.toFixed(2)}<span class="tooltip">Bond Balance = Previous × (1 + Bond Return)</span></td>
-      <td>${r.loanBalance.toFixed(2)}<span class="tooltip">Loan Balance = Remaining mortgage principal + registration tax</span></td>
+      <td>${r.stockBalance.toFixed(2)}<span class="tooltip">Stock Balance = Previous × (1 + Stock Return) + Monthly Stock Investment × 12</span></td>
+      <td>${r.stockCostBasis?.toFixed(2) || '0.00'}<span class="tooltip">Stocks Cost = Total amount invested in stocks over time</span></td>
+      <td>${r.bondBalance.toFixed(2)}<span class="tooltip">Bond Balance = Previous × (1 + Bond Return) + Monthly Bond Investment × 12<br/>Treated as term deposit (no capital gains tax)</span></td>
+      <td>${r.capitalGainsTax?.toFixed(2) || '0.00'}<span class="tooltip">(Stocks Value - Stocks Cost) × Capital Gains Tax Rate<br/>(€${r.stockBalance?.toFixed(2) || '0.00'} - €${r.stockCostBasis?.toFixed(2) || '0.00'}) × ${document.getElementById('capitalGainsTax')?.value || '10'}%</span></td>
+      <td>${r.loanBalance.toFixed(2)}<span class="tooltip">Loan Balance = Previous - Monthly Payment</span></td>
       <td>${r.penalty.toFixed(2)}<span class="tooltip">Prepayment Penalty = Remaining Loan × Penalty Rate (if not last year)</span></td>
-      <td>${r.netWorth.toFixed(2)}<span class="tooltip">Net Worth = Real Estate + Stocks + Bonds - Loan Balance - Penalty</span></td>
+      <td>${r.netWorth.toFixed(2)}<span class="tooltip">Net Worth = Real Estate + Stocks + Bonds - Loan Balance - Penalty - Capital Gains Tax (stocks only)</span></td>
     </tr>`;
   }
   html += '</tbody></table>';
