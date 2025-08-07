@@ -109,7 +109,12 @@
             min-width: 700px;
             padding: 0 32px;
         }
-        .strategy-section.buy-rent { background: #f8f8f8; }
+        .strategy-section.buy-rent { 
+            background: #f8f8f8; 
+            height: 320px;
+            min-height: 320px;
+            max-height: 320px;
+        }
         .strategy-section.stocks-bonds { background: #f8f8ff; height: 170px; min-height: 170px; max-height: 170px; }
         .strategy-section.simulation { background: #f9f9f9; height: 340px; min-height: 340px; max-height: 340px; overflow: auto; }
         
@@ -264,21 +269,20 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 const strategies = [
-  { name: "Balanced", splits: { realEstate: 40, stocks: 40, bonds: 20 } },
-  { name: "Aggressive Stocks", splits: { realEstate: 20, stocks: 70, bonds: 10 } },
-  { name: "Conservative Bonds", splits: { realEstate: 20, stocks: 20, bonds: 60 } }
+  { name: "House and Stocks", splits: { realEstate: 0, stocks: 90, bonds: 10 } },
+  { name: "Rent and Stocks", splits: { realEstate: 0, stocks: 90, bonds: 10 } }
 ];
 
 // Store latest input values and simulation results for each strategy
-const strategyInputs = strategies.map(() => ({
-  mode: 'buy',
+const strategyInputs = strategies.map((strategy, idx) => ({
+  mode: idx === 0 ? 'buy' : 'rent',
   housePrice: 400000,
   initialDeposit: 80000,
   loanTerm: 25,
-  monthlyRent: 1200,
-  stocks: 40,
-  bonds: 60,
-  selectedTab: 'buy',
+  monthlyRent: 1500,
+  stocks: 90,
+  bonds: 10,
+  selectedTab: idx === 0 ? 'buy' : 'rent',
   simRows: []
 }));
 
@@ -439,16 +443,10 @@ function renderVerticalTabContent(idx, mode) {
             <span class="tooltip">Registration Costs = House Price × Registration Tax Rate</span>
           </div>
           <div class="input-group calculated">
-            <label class="calculated-label">Total Cash Required (€)</label>
-            <input type="number" name="totalCashRequired" value="104000" readonly class="calculated-input">
-            <span class="calculated-note">(calculated)</span>
-            <span class="tooltip">Total Cash Required = Initial Deposit + Registration Costs</span>
-          </div>
-          <div class="input-group calculated">
             <label class="calculated-label">Loan Balance at t=0 (€)</label>
-            <input type="number" name="loanBalance" value="320000" readonly class="calculated-input">
+            <input type="number" name="loanBalance" value="344000" readonly class="calculated-input">
             <span class="calculated-note">(calculated)</span>
-            <span class="tooltip">Loan Balance = House Price - Initial Deposit</span>
+            <span class="tooltip">Loan Balance = House Price - Initial Deposit + Registration Costs</span>
           </div>
           <div class="input-group">
             <label>Loan Term (years)</label>
@@ -476,7 +474,7 @@ function renderVerticalTabContent(idx, mode) {
         <div class="form-inputs">
           <div class="input-group">
             <label>Monthly Rent (€)</label>
-            <input type="number" name="monthlyRent" value="1200">
+            <input type="number" name="monthlyRent" value="1500">
           </div>
         </div>
         <div id="monthlyAllowanceMsg${idx}" class="error-message"></div>
@@ -525,8 +523,7 @@ function updateStrategyInputs(idx) {
     // Calculate all the financial values
     const registrationTaxRate = +document.getElementById('registrationTax').value;
     const registrationCosts = housePrice * (registrationTaxRate / 100);
-    const totalCashRequired = initialDeposit + registrationCosts;
-    const loanBalance = housePrice - initialDeposit;
+    const loanBalance = housePrice - initialDeposit + registrationCosts;
     
     const monthlyLoanRate = (fixed.interestRate / 100) / 12;
     const monthlyRE = loanBalance * monthlyLoanRate / (1 - Math.pow(1 + monthlyLoanRate, -loanTerm * 12));
@@ -535,14 +532,13 @@ function updateStrategyInputs(idx) {
     
     // Update all calculated fields
     form.registrationCosts.value = registrationCosts.toFixed(2);
-    form.totalCashRequired.value = totalCashRequired.toFixed(2);
     form.loanBalance.value = loanBalance.toFixed(2);
     form.monthlyRE.value = monthlyRE.toFixed(2);
     form.monthlyMaintenance.value = monthlyMaintenance.toFixed(2);
     
-    // Validate total cash required
-    if (totalCashRequired > fixed.cashAtHand) {
-      msgDiv.textContent = `Error: Total cash required (€${totalCashRequired.toFixed(2)}) exceeds cash at hand (€${fixed.cashAtHand})!`;
+    // Validate initial deposit against cash at hand
+    if (initialDeposit > fixed.cashAtHand) {
+      msgDiv.textContent = `Error: Initial deposit (€${initialDeposit.toFixed(2)}) exceeds cash at hand (€${fixed.cashAtHand})!`;
     } else {
       msgDiv.textContent = '';
     }
@@ -661,7 +657,7 @@ function runStrategySimulation(idx, skipGraphUpdate = false) {
   let mode = 'buy';
   if (form && form.monthlyRent) mode = 'rent';
   let housePrice = 0, initialDeposit = 0, loanTerm = 0, monthlyRE = 0, monthlyRemainder = 0;
-  let stocks = 0, bonds = 0;
+  let stocks = strategies[idx].splits.stocks, bonds = strategies[idx].splits.bonds;
   if (form) {
     if (mode === 'buy') {
       housePrice = form.housePrice ? +form.housePrice.value : 0;
@@ -677,9 +673,12 @@ function runStrategySimulation(idx, skipGraphUpdate = false) {
       monthlyRE = 0;
       monthlyRemainder = form.monthlyRemainder ? +form.monthlyRemainder.value : 0;
     }
-    if (monthlyRemainder > 0) {
-      stocks = form.querySelector("[name='stocks']") ? +form.querySelector("[name='stocks']").value : strategies[idx].splits.stocks;
-      bonds = form.querySelector("[name='bonds']") ? +form.querySelector("[name='bonds']").value : strategies[idx].splits.bonds;
+    // Get stocks/bonds percentages from form if available
+    const stocksInput = form.querySelector("[name='stocks']");
+    const bondsInput = form.querySelector("[name='bonds']");
+    if (stocksInput && bondsInput) {
+      stocks = +stocksInput.value;
+      bonds = +bondsInput.value;
     }
   } else {
     // fallback to default strategy values if form not rendered yet
@@ -688,8 +687,6 @@ function runStrategySimulation(idx, skipGraphUpdate = false) {
     loanTerm = 30;
     monthlyRE = 1200;
     monthlyRemainder = 800;
-    stocks = strategies[idx].splits.stocks;
-    bonds = strategies[idx].splits.bonds;
   }
   const result = simulateStrategy(fixed, housePrice, initialDeposit, loanTerm, monthlyRE, monthlyRemainder, stocks, bonds);
   strategyInputs[idx].simRows = result;
@@ -708,11 +705,22 @@ function simulateStrategy(fixed, housePrice, initialDeposit, loanTerm, monthlyRE
   
   // Initial setup
   let registrationTax = housePrice * (fixed.registrationTax/100);
-  let investedCash = fixed.cashAtHand - initialDeposit - registrationTax;
   let realEstateValue = housePrice;
+  let loanBalance = 0;
+  let investedCash = 0;
+  
+  if (housePrice > 0) {
+    // Buy scenario
+    investedCash = fixed.cashAtHand - initialDeposit;
+    loanBalance = housePrice - initialDeposit + registrationTax;
+  } else {
+    // Rent scenario - all cash goes to investments
+    investedCash = fixed.cashAtHand;
+    realEstateValue = 0;
+  }
+  
   let stockBalance = investedCash * (stocks/100);
   let bondBalance = investedCash * (bonds/100);
-  let loanBalance = housePrice - initialDeposit;
   
   for (let y = 0; y <= simulationYears; y++) {
     let penalty = 0;
@@ -721,7 +729,9 @@ function simulateStrategy(fixed, housePrice, initialDeposit, loanTerm, monthlyRE
     }
     
     if (y > 0) {
-      realEstateValue *= (1 + fixed.avgRealEstateReturn/100);
+      if (realEstateValue > 0) {
+        realEstateValue *= (1 + fixed.avgRealEstateReturn/100);
+      }
       
       // Calculate monthly investment amount
       let monthlyInvestment = monthlyRemainder;
@@ -733,8 +743,8 @@ function simulateStrategy(fixed, housePrice, initialDeposit, loanTerm, monthlyRE
         let principalPaid = Math.min(monthlyRE * 12 - interestPaid, loanBalance);
         loanBalance -= principalPaid;
         if (loanBalance < 0) loanBalance = 0;
-      } else {
-        // Loan is paid off - redirect monthly loan payment to investments
+      } else if (housePrice > 0) {
+        // Loan is paid off in buy scenario - redirect monthly loan payment to investments
         monthlyInvestment += monthlyRE;
       }
       
