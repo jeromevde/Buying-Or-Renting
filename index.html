@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Buy vs Invest Financial Simulator</title>
+    <title> Financial Investment Simulator</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 40px; font-size: 18px; }
         .container { max-width: 1400px; margin: auto; display: flex; flex-direction: row; }
@@ -106,7 +106,7 @@
         </form>
     </aside>
     <main style="flex: 1;">
-        <h1>Buy vs Invest Financial Simulator</h1>
+        <h1> Financial Investment Simulator</h1>
         <canvas id="plot" width="1400" height="500" style="margin-bottom: 30px;"></canvas>
         <div id="netWorthGraph"></div>
         <div class="tabview">
@@ -123,7 +123,7 @@ const strategies = [
   { name: "Conservative Bonds", splits: { realEstate: 20, stocks: 20, bonds: 60 } }
 ];
 
-// Store latest input values for each strategy
+// Store latest input values and simulation results for each strategy
 const strategyInputs = strategies.map(() => ({
   mode: 'buy',
   housePrice: 400000,
@@ -131,7 +131,9 @@ const strategyInputs = strategies.map(() => ({
   loanTerm: 25,
   monthlyRent: 1200,
   stocks: 40,
-  bonds: 60
+  bonds: 60,
+  selectedTab: 'buy',
+  simRows: []
 }));
 
 function renderTabButtons() {
@@ -154,28 +156,44 @@ function selectStrategyTab(idx) {
 function renderStrategyTab(idx) {
   const s = strategies[idx];
   const tabContent = document.getElementById('tabContent');
+  // Remember selected tab for each strategy
+  if (!strategyInputs[idx].selectedTab) strategyInputs[idx].selectedTab = 'buy';
+  const selectedTab = strategyInputs[idx].selectedTab;
   tabContent.innerHTML = `
-    <div style="display: flex;">
-      <div style="display: flex; flex-direction: column; border-right: 1px solid #ccc; padding-right: 18px; margin-right: 18px;">
-        <button id="buyTab${idx}" class="vertical-tab active" style="padding: 10px 18px; border: none; background: #eee; cursor: pointer; font-size: 17px; border-radius: 4px 4px 0 0; margin-bottom: 2px;">Buy</button>
-        <button id="rentTab${idx}" class="vertical-tab" style="padding: 10px 18px; border: none; background: #eee; cursor: pointer; font-size: 17px; border-radius: 0 0 4px 4px;">Rent</button>
+    <section style="margin-bottom: 18px; border: 2px solid #b0b0b0; border-radius: 8px; background: #f8f8f8; height: 220px; min-height: 220px; max-height: 220px; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-start; min-width: 700px; padding: 0 32px;">
+      <h3 style="margin: 10px 0 8px 0; padding-left: 12px; font-size: 20px; border-bottom: 1px solid #ccc;">Buy or Rent</h3>
+      <div style="display: flex; flex: 1;">
+        <div style="display: flex; flex-direction: column; border-right: 1px solid #ccc; padding-right: 18px; margin-right: 18px;">
+          <button id="buyTab${idx}" class="vertical-tab${selectedTab === 'buy' ? ' active' : ''}" style="padding: 10px 18px; border: none; background: #eee; cursor: pointer; font-size: 17px; border-radius: 4px 4px 0 0; margin-bottom: 2px; border-left: 6px solid ${selectedTab === 'buy' ? '#0074D9' : 'transparent'}; font-weight: ${selectedTab === 'buy' ? 'bold' : 'normal'};">Buy</button>
+          <button id="rentTab${idx}" class="vertical-tab${selectedTab === 'rent' ? ' active' : ''}" style="padding: 10px 18px; border: none; background: #eee; cursor: pointer; font-size: 17px; border-radius: 0 0 4px 4px; border-left: 6px solid ${selectedTab === 'rent' ? '#0074D9' : 'transparent'}; font-weight: ${selectedTab === 'rent' ? 'bold' : 'normal'};">Rent</button>
+        </div>
+        <div id="verticalTabContent${idx}" style="flex: 1;"></div>
       </div>
-      <div id="verticalTabContent${idx}" style="flex: 1;"></div>
-    </div>
-    <div id="remainderSection${idx}" style="margin-top: 18px;"></div>
-    <div id="strategyTable${idx}"></div>
+    </section>
+    <section style="margin-bottom: 18px; border: 2px solid #b0b0b0; border-radius: 8px; background: #f8f8ff; height: 170px; min-height: 170px; max-height: 170px; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-start; min-width: 700px; padding: 0 32px;">
+      <h3 style="margin: 10px 0 8px 0; padding-left: 12px; font-size: 20px; border-bottom: 1px solid #ccc;">Stocks and Bonds</h3>
+      <div id="remainderSection${idx}" style="margin-top: 8px; flex: 1;"></div>
+    </section>
+    <section style="border: 2px solid #b0b0b0; border-radius: 8px; background: #f9f9f9; height: 340px; min-height: 340px; max-height: 340px; overflow: auto; display: flex; flex-direction: column; justify-content: flex-start; min-width: 700px; padding: 0 32px;">
+      <h3 style="margin: 10px 0 8px 0; padding-left: 12px; font-size: 20px; border-bottom: 1px solid #ccc;">Simulation Table</h3>
+      <div id="strategyTable${idx}" style="flex: 1;"></div>
+    </section>
   `;
-  // Render buy tab by default
-  renderVerticalTab(idx, 'buy');
+  // Render the remembered tab
+  renderVerticalTab(idx, selectedTab);
   document.getElementById(`buyTab${idx}`).onclick = () => {
     document.getElementById(`buyTab${idx}`).classList.add('active');
     document.getElementById(`rentTab${idx}`).classList.remove('active');
+    strategyInputs[idx].selectedTab = 'buy';
     renderVerticalTab(idx, 'buy');
+    updateNetWorthGraph();
   };
   document.getElementById(`rentTab${idx}`).onclick = () => {
     document.getElementById(`buyTab${idx}`).classList.remove('active');
     document.getElementById(`rentTab${idx}`).classList.add('active');
+    strategyInputs[idx].selectedTab = 'rent';
     renderVerticalTab(idx, 'rent');
+    updateNetWorthGraph();
   };
 function renderVerticalTab(idx, mode) {
   const tabDiv = document.getElementById(`verticalTabContent${idx}`);
@@ -353,6 +371,7 @@ function updateStrategyInputs(idx) {
       splitDiv.querySelector(`#stocksNominal${idx}`).textContent = ((remainder * stocksPctNew / 100).toFixed(2)) + ' €';
       splitDiv.querySelector(`#bondsNominal${idx}`).textContent = ((remainder * bondsPctNew / 100).toFixed(2)) + ' €';
       runStrategySimulation(idx);
+      updateNetWorthGraph();
     });
   } else {
     splitDiv.innerHTML = '';
@@ -378,21 +397,23 @@ function addFixedVarListeners() {
       updateNetWorthGraph();
     });
   });
-  // Add listeners for strategy inputs to update graph only on variable change
-  setTimeout(() => {
-    for (let idx = 0; idx < strategies.length; idx++) {
-      const form = document.getElementById(`strategyForm${idx}`);
-      if (form) {
-        Array.from(form.elements).forEach(el => {
-          if (el.type === 'number' && !el.readOnly) {
-            el.addEventListener('input', () => {
-              updateNetWorthGraph();
-            });
-          }
-        });
-      }
+  // Add listeners for strategy inputs to update graph for all strategies
+  for (let idx = 0; idx < strategies.length; idx++) {
+    const form = document.getElementById(`strategyForm${idx}`);
+    if (form) {
+      Array.from(form.elements).forEach(el => {
+        if (el.type === 'number' && !el.readOnly) {
+          el.addEventListener('input', () => {
+            // Rerun all strategy simulations
+            for (let idx = 0; idx < strategies.length; idx++) {
+              runStrategySimulation(idx);
+            }
+            updateNetWorthGraph();
+          });
+        }
+      });
     }
-  }, 300);
+  }
 }
 
 function runStrategySimulation(idx) {
@@ -444,20 +465,22 @@ function runStrategySimulation(idx) {
     bonds = strategies[idx].splits.bonds;
   }
   const result = simulateStrategy(fixed, housePrice, initialDeposit, loanTerm, monthlyRE, monthlyRemainder, stocks, bonds);
+  strategyInputs[idx].simRows = result;
   renderStrategyTable(idx, result);
+  updateNetWorthGraph(idx);
 }
 
 function simulateStrategy(fixed, housePrice, initialDeposit, loanTerm, monthlyRE, monthlyRemainder, stocks, bonds) {
   // Always simulate up to maxYears (from updateNetWorthGraph)
   const maxYears = Math.max(...strategyInputs.map(input => input.loanTerm));
   let rows = [];
-  let investedCash = fixed.cashAtHand - initialDeposit;
-  let registrationTax = housePrice * (fixed.registrationTax/100);
-  let realEstateValue = housePrice;
-  let realEstateBalance = housePrice - initialDeposit;
-  let stockBalance = investedCash * (stocks/100);
-  let bondBalance = investedCash * (bonds/100);
-  let loanBalance = housePrice - initialDeposit;
+let registrationTax = housePrice * (fixed.registrationTax/100);
+let investedCash = fixed.cashAtHand - initialDeposit - registrationTax;
+let realEstateValue = housePrice;
+let realEstateBalance = housePrice - initialDeposit - registrationTax;
+let stockBalance = investedCash * (stocks/100);
+let bondBalance = investedCash * (bonds/100);
+let loanBalance = housePrice - initialDeposit + registrationTax;
   let lastRow = null;
   for (let y = 0; y <= maxYears; y++) {
     let penalty = 0;
@@ -478,7 +501,6 @@ function simulateStrategy(fixed, housePrice, initialDeposit, loanTerm, monthlyRE
       }
     }
     let netWorth = realEstateValue + stockBalance + bondBalance - loanBalance - penalty;
-    if (y === 0) netWorth -= registrationTax;
     let row = {
       year: y,
       realEstateValue,
@@ -486,7 +508,6 @@ function simulateStrategy(fixed, housePrice, initialDeposit, loanTerm, monthlyRE
       bondBalance,
       loanBalance,
       penalty,
-      registrationTax: y === 0 ? registrationTax : 0,
       maintenance: 0,
       netWorth
     };
@@ -504,7 +525,6 @@ function renderStrategyTable(idx, rows) {
     <th>Bond Balance</th>
     <th>Loan Balance</th>
     <th>Prepayment Penalty</th>
-    <th>Registration Tax</th>
     <th>Net Worth</th>
   </tr></thead><tbody>`;
   for (const r of rows) {
@@ -513,90 +533,46 @@ function renderStrategyTable(idx, rows) {
       <td>${r.realEstateValue.toFixed(2)}<span class="tooltip">Real Estate Value = Previous × (1 + Real Estate Return)</span></td>
       <td>${r.stockBalance.toFixed(2)}<span class="tooltip">Stock Balance = Previous × (1 + Stock Return)</span></td>
       <td>${r.bondBalance.toFixed(2)}<span class="tooltip">Bond Balance = Previous × (1 + Bond Return)</span></td>
-      <td>${r.loanBalance.toFixed(2)}<span class="tooltip">Loan Balance = Remaining mortgage principal</span></td>
+      <td>${r.loanBalance.toFixed(2)}<span class="tooltip">Loan Balance = Remaining mortgage principal + registration tax</span></td>
       <td>${r.penalty.toFixed(2)}<span class="tooltip">Prepayment Penalty = Remaining Loan × Penalty Rate (if not last year)</span></td>
-      <td>${r.registrationTax.toFixed(2)}<span class="tooltip">Registration Tax = House Price × Registration Tax Rate (only at t=0)</span></td>
-      <td>${r.netWorth.toFixed(2)}<span class="tooltip">Net Worth = Real Estate + Stocks + Bonds - Loan Balance - Penalty - Registration Tax (t=0)</span></td>
+      <td>${r.netWorth.toFixed(2)}<span class="tooltip">Net Worth = Real Estate + Stocks + Bonds - Loan Balance - Penalty</span></td>
     </tr>`;
   }
   html += '</tbody></table>';
-  document.getElementById(`strategyTable${idx}`).innerHTML = html;
+  const tableDiv = document.getElementById(`strategyTable${idx}`);
+  if (tableDiv) tableDiv.innerHTML = html;
 }
 
-function updateNetWorthGraph() {
-  // Gather all years present in any scenario and get simulation data
-  const allYears = new Set();
-  const scenarioRows = [];
-  
-  strategies.forEach((s, idx) => {
-    const fixed = {
-      interestRate: +document.getElementById('interestRate').value,
-      monthlyAllowance: +document.getElementById('monthlyAllowance').value,
-      avgStockReturn: +document.getElementById('avgStockReturn').value,
-      avgRealEstateReturn: +document.getElementById('avgRealEstateReturn').value,
-      avgBondReturn: +document.getElementById('avgBondReturn').value,
-      cashAtHand: +document.getElementById('cashAtHand').value,
-      prepaymentPenalty: +document.getElementById('prepaymentPenalty').value,
-      registrationTax: +document.getElementById('registrationTax').value,
-      maintenanceCosts: +document.getElementById('maintenanceCosts').value
-    };
-    
-    const input = strategyInputs[idx];
-    let housePrice, initialDeposit, loanTerm, monthlyRE, monthlyRemainder, stocks, bonds, mode;
-    mode = input.mode;
-    
-    if (mode === 'buy') {
-      housePrice = input.housePrice;
-      initialDeposit = input.initialDeposit;
-      loanTerm = input.loanTerm;
-      const loan = housePrice - initialDeposit;
-      const monthlyLoanRate = (fixed.interestRate/100)/12;
-      monthlyRE = loan * monthlyLoanRate / (1 - Math.pow(1 + monthlyLoanRate, -loanTerm*12));
-      const maintenanceRate = +document.getElementById('maintenanceCosts').value;
-      const monthlyMaintenance = housePrice * (maintenanceRate / 100) / 12;
-      monthlyRemainder = fixed.monthlyAllowance - monthlyRE - monthlyMaintenance;
-    } else {
-      housePrice = 0;
-      initialDeposit = 0;
-      loanTerm = 30;
-      monthlyRE = 0;
-      monthlyRemainder = fixed.monthlyAllowance - input.monthlyRent;
-    }
-    
-    stocks = s.splits.stocks;
-    bonds = 100 - stocks;
-    const rows = simulateStrategy(fixed, housePrice, initialDeposit, loanTerm, monthlyRE, monthlyRemainder, stocks, bonds);
-    scenarioRows.push(rows);
-    
-    // Collect all years > 0 from this scenario
-    rows.forEach(r => {
-      if (r.year > 0) allYears.add(r.year);
-    });
-  });
-  
-  // Sort all years
-  const years = Array.from(allYears).sort((a, b) => a - b);
-  
-  // Build datasets for each scenario, matching table values
-  let datasets = scenarioRows.map((rows, idx) => {
-    // Only years > 0, map net worth values to corresponding years
+function updateNetWorthGraph(changedIdx) {
+  // Always show all three graphs, but only update the changed strategy's data if changedIdx is provided
+  const cashAtHand = +document.getElementById('cashAtHand').value;
+  // Find the union of all years across all strategies
+  let allYears = new Set();
+  for (let i = 0; i < strategies.length; i++) {
+    const simRows = strategyInputs[i].simRows || [];
+    simRows.forEach(r => allYears.add(r.year));
+  }
+  if (allYears.size === 0) return;
+  let years = Array.from(allYears).sort((a, b) => a - b);
+  years = [-1, ...years];
+  // Build datasets for all strategies
+  let datasets = strategies.map((s, idx) => {
+    const simRows = strategyInputs[idx].simRows || [];
     const data = years.map(y => {
-      const row = rows.find(r => r.year === y);
+      if (y === -1) return cashAtHand;
+      const row = simRows.find(r => r.year === y);
       return row ? row.netWorth : null;
     });
-    
     return {
-      label: strategies[idx].name,
+      label: s.name,
       data,
       borderColor: idx === 0 ? 'blue' : idx === 1 ? 'green' : 'orange',
       fill: false,
       tension: 0.1
     };
   });
-  
   const ctx = document.getElementById('plot').getContext('2d');
   if (window.resultChart) window.resultChart.destroy();
-  
   window.resultChart = new Chart(ctx, {
     type: 'line',
     data: {
@@ -615,7 +591,7 @@ function updateNetWorthGraph() {
           title: { display: true, text: 'Net Worth (€)' },
           beginAtZero: true,
           suggestedMin: 0,
-          suggestedMax: Math.max(...datasets.flatMap(ds => ds.data.filter(v => v !== null))) * 1.1 // 10% padding above max
+          suggestedMax: Math.max(...datasets.flatMap(ds => ds.data.filter(v => v !== null))) * 1.1
         }
       }
     }
