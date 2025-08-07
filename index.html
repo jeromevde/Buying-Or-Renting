@@ -271,12 +271,13 @@
         .graph-container {
             width: 100%;
             max-width: 1400px;
-            overflow-x: auto;
-            overflow-y: hidden;
+            height: 500px;
             margin: 40px 0 20px 0;
             border: 1px solid #ddd;
             border-radius: 6px;
             background: #fff;
+            padding: 20px;
+            position: relative;
         }
         
         /* Simulation controls */
@@ -292,6 +293,133 @@
             font-size: 16px;
             font-weight: bold;
             min-width: auto;
+        }
+        
+        /* Strategy management */
+        .strategy-management {
+            display: none; /* Hide the old strategy management bar */
+        }
+        
+        /* Tab button improvements */
+        .tab-buttons button.editable {
+            position: relative;
+            padding-right: 35px;
+        }
+        
+        .tab-edit-btn {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 12px;
+            color: #666;
+            padding: 2px;
+        }
+        
+        .tab-edit-btn:hover {
+            color: #333;
+            background: rgba(0,0,0,0.1);
+            border-radius: 2px;
+        }
+        
+        /* Add strategy button */
+        .add-strategy-tab {
+            padding: 10px 16px;
+            border: none;
+            background: #4CAF50;
+            color: white;
+            cursor: pointer;
+            font-size: 19px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        
+        .add-strategy-tab:hover {
+            background: #45a049;
+        }
+        
+        /* Strategy popup */
+        .strategy-popup {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 10000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .strategy-popup-content {
+            background: white;
+            padding: 24px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            max-width: 400px;
+            width: 90%;
+        }
+        
+        .strategy-popup h3 {
+            margin-top: 0;
+            margin-bottom: 16px;
+            font-size: 18px;
+        }
+        
+        .strategy-popup-input {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        
+        .strategy-popup-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+        
+        .strategy-popup-buttons button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        
+        .popup-btn-primary {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .popup-btn-primary:hover {
+            background: #45a049;
+        }
+        
+        .popup-btn-danger {
+            background: #f44336;
+            color: white;
+        }
+        
+        .popup-btn-danger:hover {
+            background: #da190b;
+        }
+        
+        .popup-btn-secondary {
+            background: #ccc;
+            color: #333;
+        }
+        
+        .popup-btn-secondary:hover {
+            background: #bbb;
         }
     </style>
 </head>
@@ -316,7 +444,7 @@
     <main style="flex: 1;">
         <h1> Financial Investment Simulator</h1>
         <div class="graph-container">
-            <canvas id="plot" width="1400" height="500" style="margin-bottom: 30px;"></canvas>
+            <canvas id="plot"></canvas>
         </div>
         <div id="netWorthGraph"></div>
         <div class="tabview">
@@ -325,15 +453,33 @@
         </div>
     </main>
 </div>
+
+<!-- Strategy Management Popup -->
+<div class="strategy-popup" id="strategyPopup">
+    <div class="strategy-popup-content">
+        <h3 id="popupTitle">Edit Strategy</h3>
+        <input type="text" id="popupStrategyName" class="strategy-popup-input" placeholder="Enter strategy name" maxlength="30">
+        <div class="strategy-popup-buttons">
+            <button class="popup-btn-secondary" onclick="closeStrategyPopup()">Cancel</button>
+            <button class="popup-btn-danger" id="popupDeleteBtn" onclick="deleteStrategyFromPopup()" style="display: none;">Delete</button>
+            <button class="popup-btn-primary" id="popupSaveBtn" onclick="saveStrategyFromPopup()">Save</button>
+        </div>
+    </div>
+</div>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-const strategies = [
-  { name: "House and Stocks", splits: { realEstate: 0, stocks: 90, bonds: 10 } },
-  { name: "Rent and Stocks", splits: { realEstate: 0, stocks: 90, bonds: 10 } }
+// Make strategies array mutable and add unique IDs
+let strategies = [
+  { id: 1, name: "House and Stocks", splits: { realEstate: 0, stocks: 90, bonds: 10 } },
+  { id: 2, name: "Rent and Stocks", splits: { realEstate: 0, stocks: 90, bonds: 10 } }
 ];
 
+let currentStrategyId = 0;
+let nextStrategyId = 3; // Start from 3 since we have 2 default strategies
+
 // Store latest input values and simulation results for each strategy
-const strategyInputs = strategies.map((strategy, idx) => ({
+let strategyInputs = strategies.map((strategy, idx) => ({
+  id: strategy.id,
   mode: idx === 0 ? 'buy' : 'rent',
   housePrice: 400000,
   initialDeposit: 100000,
@@ -345,20 +491,173 @@ const strategyInputs = strategies.map((strategy, idx) => ({
   simRows: []
 }));
 
+let currentPopupStrategyIndex = -1;
+let popupMode = 'edit'; // 'edit' or 'add'
+
 function renderTabButtons() {
   const tabButtons = document.getElementById('tabButtons');
   tabButtons.innerHTML = '';
+  
+  // Render strategy tabs
   strategies.forEach((s, i) => {
     const btn = document.createElement('button');
-    btn.textContent = s.name;
-    btn.className = i === 0 ? 'active' : '';
-    btn.onclick = () => selectStrategyTab(i);
+    btn.className = i === currentStrategyId ? 'active editable' : 'editable';
+    btn.innerHTML = `${s.name}<span class="tab-edit-btn" onclick="openStrategyPopup(${i}, event)" title="Edit strategy">⚙️</span>`;
+    btn.onclick = (e) => {
+      // Prevent edit button from triggering tab selection
+      if (!e.target.classList.contains('tab-edit-btn')) {
+        selectStrategyTab(i);
+      }
+    };
     tabButtons.appendChild(btn);
   });
+  
+  // Add the + button at the end
+  const addBtn = document.createElement('button');
+  addBtn.className = 'add-strategy-tab';
+  addBtn.textContent = '+';
+  addBtn.title = 'Add new strategy';
+  addBtn.onclick = () => openAddStrategyPopup();
+  tabButtons.appendChild(addBtn);
+}
+
+function openStrategyPopup(strategyIndex, event) {
+  event.stopPropagation();
+  
+  currentPopupStrategyIndex = strategyIndex;
+  popupMode = 'edit';
+  
+  const strategy = strategies[strategyIndex];
+  document.getElementById('popupTitle').textContent = 'Edit Strategy';
+  document.getElementById('popupStrategyName').value = strategy.name;
+  document.getElementById('popupDeleteBtn').style.display = strategies.length > 1 ? 'inline-block' : 'none';
+  document.getElementById('popupSaveBtn').textContent = 'Save';
+  
+  showStrategyPopup();
+}
+
+function openAddStrategyPopup() {
+  currentPopupStrategyIndex = -1;
+  popupMode = 'add';
+  
+  document.getElementById('popupTitle').textContent = 'Add New Strategy';
+  document.getElementById('popupStrategyName').value = '';
+  document.getElementById('popupDeleteBtn').style.display = 'none';
+  document.getElementById('popupSaveBtn').textContent = 'Add';
+  
+  showStrategyPopup();
+}
+
+function showStrategyPopup() {
+  const popup = document.getElementById('strategyPopup');
+  popup.style.display = 'flex';
+  document.getElementById('popupStrategyName').focus();
+  
+  // Close popup when clicking outside
+  popup.onclick = (e) => {
+    if (e.target === popup) {
+      closeStrategyPopup();
+    }
+  };
+}
+
+function closeStrategyPopup() {
+  document.getElementById('strategyPopup').style.display = 'none';
+}
+
+function saveStrategyFromPopup() {
+  const name = document.getElementById('popupStrategyName').value.trim();
+  
+  if (!name) {
+    alert('Please enter a strategy name');
+    return;
+  }
+  
+  // Check for duplicate names (excluding current strategy if editing)
+  const isDuplicate = strategies.some((s, i) => 
+    s.name === name && (popupMode === 'add' || i !== currentPopupStrategyIndex)
+  );
+  
+  if (isDuplicate) {
+    alert('Strategy name already exists');
+    return;
+  }
+  
+  if (popupMode === 'add') {
+    // Create new strategy
+    const newStrategy = {
+      id: nextStrategyId++,
+      name: name,
+      splits: { realEstate: 0, stocks: 90, bonds: 10 }
+    };
+    
+    strategies.push(newStrategy);
+    
+    // Create corresponding strategy input
+    const newStrategyInput = {
+      id: newStrategy.id,
+      mode: 'buy',
+      housePrice: 400000,
+      initialDeposit: 100000,
+      loanTerm: 25,
+      monthlyRent: 1500,
+      stocks: 90,
+      bonds: 10,
+      selectedTab: 'buy',
+      simRows: []
+    };
+    
+    strategyInputs.push(newStrategyInput);
+    
+    // Re-render and select the new strategy
+    renderTabButtons();
+    initializeAllStrategies();
+    selectStrategyTab(strategies.length - 1);
+  } else {
+    // Update existing strategy name
+    strategies[currentPopupStrategyIndex].name = name;
+    renderTabButtons();
+    updateNetWorthGraph(); // Update graph with new name
+  }
+  
+  closeStrategyPopup();
+}
+
+function deleteStrategyFromPopup() {
+  if (strategies.length <= 1) {
+    alert('Cannot remove the last strategy');
+    return;
+  }
+  
+  const strategyName = strategies[currentPopupStrategyIndex].name;
+  if (!confirm(`Are you sure you want to remove "${strategyName}"?`)) {
+    return;
+  }
+  
+  // Remove strategy and its inputs
+  const removedStrategyId = strategies[currentPopupStrategyIndex].id;
+  strategies.splice(currentPopupStrategyIndex, 1);
+  strategyInputs = strategyInputs.filter(input => input.id !== removedStrategyId);
+  
+  // Adjust current strategy index
+  if (currentStrategyId >= strategies.length) {
+    currentStrategyId = strategies.length - 1;
+  } else if (currentStrategyId >= currentPopupStrategyIndex) {
+    currentStrategyId = Math.max(0, currentStrategyId - 1);
+  }
+  
+  // Re-render and update
+  renderTabButtons();
+  initializeAllStrategies();
+  selectStrategyTab(currentStrategyId);
+  
+  closeStrategyPopup();
 }
 
 function selectStrategyTab(idx) {
   console.log('🔵 selectStrategyTab called with idx:', idx);
+  
+  currentStrategyId = idx;
   
   // Hide all strategy content divs
   document.querySelectorAll('.strategy-content-wrapper').forEach(div => {
@@ -372,8 +671,11 @@ function selectStrategyTab(idx) {
   }
   
   // Update button states
-  document.querySelectorAll('.tab-buttons button').forEach((b, i) => 
-    b.classList.toggle('active', i === idx));
+  document.querySelectorAll('.tab-buttons button').forEach((b, i) => {
+    if (i < strategies.length) { // Only update strategy buttons, not the + button
+      b.classList.toggle('active', i === idx);
+    }
+  });
   
   console.log('🔵 selectStrategyTab finished - NO graph update');
 }
@@ -383,7 +685,7 @@ function initializeAllStrategies() {
   
   // Create wrapper divs for each strategy
   tabContent.innerHTML = strategies.map((strategy, idx) => `
-    <div id="strategyContent${idx}" class="strategy-content-wrapper" style="${idx === 0 ? 'display: block' : 'display: none'}">
+    <div id="strategyContent${idx}" class="strategy-content-wrapper" style="${idx === currentStrategyId ? 'display: block' : 'display: none'}">
       <section class="strategy-section buy-rent">
         <h3>Buy or Rent</h3>
         <div class="section-content">
@@ -404,7 +706,9 @@ function initializeAllStrategies() {
   
   // Initialize each strategy
   strategies.forEach((_, idx) => {
-    if (!strategyInputs[idx].selectedTab) strategyInputs[idx].selectedTab = 'buy';
+    // Find corresponding strategyInput by ID
+    const strategyInput = strategyInputs.find(input => input.id === strategies[idx].id);
+    if (!strategyInput.selectedTab) strategyInput.selectedTab = 'buy';
     initializeStrategy(idx);
   });
   
@@ -413,7 +717,8 @@ function initializeAllStrategies() {
 }
 
 function initializeStrategy(idx) {
-  const selectedTab = strategyInputs[idx].selectedTab;
+  const strategyInput = strategyInputs.find(input => input.id === strategies[idx].id);
+  const selectedTab = strategyInput.selectedTab;
   
   // Render tab buttons for this strategy
   const tabBtnsDiv = document.getElementById(`verticalTabButtons${idx}`);
@@ -424,7 +729,7 @@ function initializeStrategy(idx) {
     btn.textContent = tab.charAt(0).toUpperCase() + tab.slice(1);
     btn.onclick = () => {
       console.log('🟢 Buy/Rent tab clicked for idx:', idx, 'tab:', tab);
-      strategyInputs[idx].selectedTab = tab;
+      strategyInput.selectedTab = tab;
       renderVerticalTab(idx, tab);
     };
     tabBtnsDiv.appendChild(btn);
@@ -439,8 +744,9 @@ function initializeStrategy(idx) {
 function renderStrategyTab(idx) {
   console.log('🟠 renderStrategyTab called - this should only be used during initialization');
   const tabContent = document.getElementById('tabContent');
-  if (!strategyInputs[idx].selectedTab) strategyInputs[idx].selectedTab = 'buy';
-  const selectedTab = strategyInputs[idx].selectedTab;
+  const strategyInput = strategyInputs.find(input => input.id === strategies[idx].id);
+  if (!strategyInput.selectedTab) strategyInput.selectedTab = 'buy';
+  const selectedTab = strategyInput.selectedTab;
   
   tabContent.innerHTML = `
     <section class="strategy-section buy-rent">
@@ -472,6 +778,10 @@ function renderVerticalTab(idx, mode) {
   tabBtnsDiv.querySelectorAll('button').forEach(btn => {
     btn.classList.toggle('active', btn.textContent.toLowerCase() === mode);
   });
+  
+  // Update strategy input
+  const strategyInput = strategyInputs.find(input => input.id === strategies[idx].id);
+  strategyInput.selectedTab = mode;
   
   // Render tab content
   renderVerticalTabContent(idx, mode);
@@ -571,7 +881,8 @@ function renderVerticalTabContent(idx, mode) {
 function updateStrategyInputs(idx) {
   const form = document.getElementById(`strategyForm${idx}`);
   const mode = form && form.monthlyRent ? 'rent' : 'buy';
-  strategyInputs[idx].mode = mode;
+  const strategyInput = strategyInputs.find(input => input.id === strategies[idx].id);
+  strategyInput.mode = mode;
   
   const fixed = {
     cashAtHand: +document.getElementById('cashAtHand').value,
@@ -587,9 +898,9 @@ function updateStrategyInputs(idx) {
     const initialDeposit = +form.initialDeposit.value;
     const loanTerm = +form.loanTerm.value;
     
-    strategyInputs[idx].housePrice = housePrice;
-    strategyInputs[idx].initialDeposit = initialDeposit;
-    strategyInputs[idx].loanTerm = loanTerm;
+    strategyInput.housePrice = housePrice;
+    strategyInput.initialDeposit = initialDeposit;
+    strategyInput.loanTerm = loanTerm;
     
     // Calculate all the financial values
     const registrationTaxRate = +document.getElementById('registrationTax').value;
@@ -655,8 +966,8 @@ function updateStrategyInputs(idx) {
     
   } else {
     const monthlyRent = +form.monthlyRent.value;
-    strategyInputs[idx].monthlyRent = monthlyRent;
-    strategyInputs[idx].loanTerm = 30;
+    strategyInput.monthlyRent = monthlyRent;
+    strategyInput.loanTerm = 30;
     remainder = fixed.monthlyAllowance - monthlyRent;
   }
   
@@ -745,12 +1056,22 @@ function addFixedVarListeners() {
         updateNetWorthGraph();
       } else {
         // Re-render current tab and update graph for other fixed variables
-        const activeIdx = [...document.querySelectorAll('.tab-buttons button')]
-          .findIndex(btn => btn.classList.contains('active'));
-        renderStrategyTab(activeIdx);
+        renderStrategyTab(currentStrategyId);
         updateNetWorthGraph();
       }
     });
+  });
+  
+  // Add keyboard support for popup
+  document.addEventListener('keydown', (e) => {
+    const popup = document.getElementById('strategyPopup');
+    if (popup.style.display === 'flex') {
+      if (e.key === 'Escape') {
+        closeStrategyPopup();
+      } else if (e.key === 'Enter') {
+        saveStrategyFromPopup();
+      }
+    }
   });
 }
 
@@ -815,7 +1136,8 @@ function runStrategySimulation(idx, skipGraphUpdate = false) {
     monthlyRemainder = 800;
   }
   const result = simulateStrategy(fixed, housePrice, initialDeposit, loanTerm, monthlyRE, monthlyRemainder, stocks, bonds, idx);
-  strategyInputs[idx].simRows = result;
+  const strategyInput = strategyInputs.find(input => input.id === strategies[idx].id);
+  strategyInput.simRows = result;
   renderStrategyTable(idx, result);
   // Only update the graph if not skipping
   if (!skipGraphUpdate) {
@@ -951,12 +1273,13 @@ function renderStrategyTable(idx, rows) {
 function updateNetWorthGraph(changedIdx) {
   console.log('🔴 updateNetWorthGraph called with changedIdx:', changedIdx);
   console.trace('🔴 Call stack:');
-  // Always show all three graphs, but only update the changed strategy's data if changedIdx is provided
+  // Always show all graphs, but only update the changed strategy's data if changedIdx is provided
   const cashAtHand = +document.getElementById('cashAtHand').value;
   // Find the union of all years across all strategies
   let allYears = new Set();
   for (let i = 0; i < strategies.length; i++) {
-    const simRows = strategyInputs[i].simRows || [];
+    const strategyInput = strategyInputs.find(input => input.id === strategies[i].id);
+    const simRows = strategyInput ? strategyInput.simRows || [] : [];
     simRows.forEach(r => allYears.add(r.year));
   }
   if (allYears.size === 0) return;
@@ -964,7 +1287,8 @@ function updateNetWorthGraph(changedIdx) {
   years = [-1, ...years];
   // Build datasets for all strategies
   let datasets = strategies.map((s, idx) => {
-    const simRows = strategyInputs[idx].simRows || [];
+    const strategyInput = strategyInputs.find(input => input.id === s.id);
+    const simRows = strategyInput ? strategyInput.simRows || [] : [];
     const data = years.map(y => {
       if (y === -1) return cashAtHand;
       const row = simRows.find(r => r.year === y);
@@ -973,7 +1297,7 @@ function updateNetWorthGraph(changedIdx) {
     return {
       label: s.name,
       data,
-      borderColor: idx === 0 ? 'blue' : idx === 1 ? 'green' : 'orange',
+      borderColor: idx === 0 ? 'blue' : idx === 1 ? 'green' : idx === 2 ? 'orange' : `hsl(${idx * 60}, 70%, 50%)`,
       fill: false,
       tension: 0.1
     };
@@ -987,7 +1311,8 @@ function updateNetWorthGraph(changedIdx) {
       datasets: datasets
     },
     options: {
-      responsive: false,
+      responsive: true,
+      maintainAspectRatio: false,
       plugins: {
         legend: { position: 'top' },
         tooltip: { enabled: true }
