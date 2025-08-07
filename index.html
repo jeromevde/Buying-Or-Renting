@@ -7,7 +7,7 @@
     <style>
         body { font-family: Arial, sans-serif; margin: 40px; font-size: 18px; }
         .container { max-width: 1400px; margin: auto; display: flex; flex-direction: row; }
-        aside { width: 320px; min-width: 280px; margin-right: 40px; background: #f4f4f4; border-radius: 8px; padding: 24px 18px; }
+        aside { width: 320px; min-width: 250px; margin-right: 40px; background: #f4f4f4; border-radius: 8px; padding: 24px 18px; }
         main { flex: 1; min-width: 0; }
         h1, h2 { text-align: center; }
         form, #fixedVarsForm { display: flex; flex-direction: column; gap: 12px; margin-bottom: 30px; }
@@ -87,6 +87,152 @@
         .tab-buttons button { padding: 10px 28px; border: none; background: #eee; cursor: pointer; font-size: 19px; border-radius: 4px; }
         .tab-buttons button.active { background: #ccc; font-weight: bold; }
         .tab-content { background: #f9f9f9; padding: 24px; border-radius: 6px; min-height: 120px; }
+        
+        /* Strategy content wrapper for smooth transitions */
+        .strategy-content-wrapper {
+            opacity: 1;
+            transition: opacity 0.2s ease-in-out;
+        }
+        
+        /* Strategy sections */
+        .strategy-section {
+            margin-bottom: 18px;
+            border: 2px solid #b0b0b0;
+            border-radius: 8px;
+            height: 280px;
+            min-height: 280px;
+            max-height: 280px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            min-width: 700px;
+            padding: 0 32px;
+        }
+        .strategy-section.buy-rent { background: #f8f8f8; }
+        .strategy-section.stocks-bonds { background: #f8f8ff; height: 170px; min-height: 170px; max-height: 170px; }
+        .strategy-section.simulation { background: #f9f9f9; height: 340px; min-height: 340px; max-height: 340px; overflow: auto; }
+        
+        .strategy-section h3 {
+            margin: 10px 0 8px 0;
+            padding-left: 12px;
+            font-size: 20px;
+            border-bottom: 1px solid #ccc;
+        }
+        
+        .section-content {
+            display: flex;
+            flex: 1;
+        }
+        
+        /* Vertical tabs */
+        .vertical-tab-buttons {
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid #ccc;
+            padding-right: 18px;
+            margin-right: 18px;
+        }
+        
+        .vertical-tab-button {
+            padding: 10px 18px;
+            border: none;
+            background: #eee;
+            cursor: pointer;
+            font-size: 17px;
+            border-left: 6px solid transparent;
+            margin-bottom: 2px;
+        }
+        .vertical-tab-button.buy { border-radius: 4px 4px 0 0; }
+        .vertical-tab-button.rent { border-radius: 0 0 4px 4px; margin-bottom: 0; }
+        .vertical-tab-button.active { border-left-color: #0074D9; font-weight: bold; }
+        
+        .vertical-tab-content { flex: 1; }
+        
+        /* Form styling */
+        .form-inputs {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        
+        .input-group.calculated {
+            align-items: flex-start;
+            min-width: 180px;
+            position: relative;
+        }
+        
+        .input-group label.calculated-label {
+            color: #555;
+            font-style: italic;
+        }
+        
+        .calculated-input {
+            background: #f0f0f0;
+            border: 1px solid #bbb;
+            color: #333;
+            font-weight: bold;
+        }
+        
+        .calculated-note {
+            font-size: 12px;
+            color: #888;
+        }
+        
+        .error-message {
+            color: #b00;
+            font-weight: bold;
+            margin: 8px 0;
+        }
+        
+        /* Remainder section */
+        .remainder-section {
+            display: flex;
+            align-items: flex-end;
+            gap: 16px;
+            margin-bottom: 8px;
+        }
+        
+        .split-inputs {
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+        }
+        
+        .split-input-group {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        .split-input-group label {
+            font-size: 18px;
+        }
+        
+        .split-input-group input {
+            width: 60px;
+            font-size: 18px;
+            padding: 6px;
+        }
+        
+        .split-input-group input[readonly] {
+            background: #eee;
+            color: #888;
+        }
+        
+        .nominal-value {
+            font-size: 16px;
+            color: #888;
+            margin-top: 2px;
+        }
     </style>
 </head>
 <body>
@@ -149,273 +295,355 @@ function renderTabButtons() {
 }
 
 function selectStrategyTab(idx) {
-  document.querySelectorAll('.tab-buttons button').forEach((b, i) => b.classList.toggle('active', i === idx));
-  renderStrategyTab(idx);
+  console.log('🔵 selectStrategyTab called with idx:', idx);
+  
+  // Hide all strategy content divs
+  document.querySelectorAll('.strategy-content-wrapper').forEach(div => {
+    div.style.display = 'none';
+  });
+  
+  // Show selected strategy content
+  const selectedContent = document.getElementById(`strategyContent${idx}`);
+  if (selectedContent) {
+    selectedContent.style.display = 'block';
+  }
+  
+  // Update button states
+  document.querySelectorAll('.tab-buttons button').forEach((b, i) => 
+    b.classList.toggle('active', i === idx));
+  
+  console.log('🔵 selectStrategyTab finished - NO graph update');
 }
 
-function renderStrategyTab(idx) {
-  const s = strategies[idx];
+function initializeAllStrategies() {
   const tabContent = document.getElementById('tabContent');
-  // Remember selected tab for each strategy
-  if (!strategyInputs[idx].selectedTab) strategyInputs[idx].selectedTab = 'buy';
+  
+  // Create wrapper divs for each strategy
+  tabContent.innerHTML = strategies.map((strategy, idx) => `
+    <div id="strategyContent${idx}" class="strategy-content-wrapper" style="${idx === 0 ? 'display: block' : 'display: none'}">
+      <section class="strategy-section buy-rent">
+        <h3>Buy or Rent</h3>
+        <div class="section-content">
+          <div class="vertical-tab-buttons" id="verticalTabButtons${idx}"></div>
+          <div class="vertical-tab-content" id="verticalTabContent${idx}"></div>
+        </div>
+      </section>
+      <section class="strategy-section stocks-bonds">
+        <h3>Stocks and Bonds</h3>
+        <div id="remainderSection${idx}" class="section-content"></div>
+      </section>
+      <section class="strategy-section simulation">
+        <h3>Simulation Table</h3>
+        <div id="strategyTable${idx}" class="section-content"></div>
+      </section>
+    </div>
+  `).join('');
+  
+  // Initialize each strategy
+  strategies.forEach((_, idx) => {
+    if (!strategyInputs[idx].selectedTab) strategyInputs[idx].selectedTab = 'buy';
+    initializeStrategy(idx);
+  });
+  
+  // Update graph once after all strategies are initialized
+  updateNetWorthGraph();
+}
+
+function initializeStrategy(idx) {
   const selectedTab = strategyInputs[idx].selectedTab;
-  tabContent.innerHTML = `
-    <section style="margin-bottom: 18px; border: 2px solid #b0b0b0; border-radius: 8px; background: #f8f8f8; height: 220px; min-height: 220px; max-height: 220px; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-start; min-width: 700px; padding: 0 32px;">
-      <h3 style="margin: 10px 0 8px 0; padding-left: 12px; font-size: 20px; border-bottom: 1px solid #ccc;">Buy or Rent</h3>
-      <div style="display: flex; flex: 1;">
-        <div id="verticalTabButtons${idx}" style="display: flex; flex-direction: column; border-right: 1px solid #ccc; padding-right: 18px; margin-right: 18px;"></div>
-        <div id="verticalTabContent${idx}" style="flex: 1;"></div>
-      </div>
-    </section>
-    <section style="margin-bottom: 18px; border: 2px solid #b0b0b0; border-radius: 8px; background: #f8f8ff; height: 170px; min-height: 170px; max-height: 170px; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-start; min-width: 700px; padding: 0 32px;">
-      <h3 style="margin: 10px 0 8px 0; padding-left: 12px; font-size: 20px; border-bottom: 1px solid #ccc;">Stocks and Bonds</h3>
-      <div id="remainderSection${idx}" style="margin-top: 8px; flex: 1;"></div>
-    </section>
-    <section style="border: 2px solid #b0b0b0; border-radius: 8px; background: #f9f9f9; height: 340px; min-height: 340px; max-height: 340px; overflow: auto; display: flex; flex-direction: column; justify-content: flex-start; min-width: 700px; padding: 0 32px;">
-      <h3 style="margin: 10px 0 8px 0; padding-left: 12px; font-size: 20px; border-bottom: 1px solid #ccc;">Simulation Table</h3>
-      <div id="strategyTable${idx}" style="flex: 1;"></div>
-    </section>
-  `;
-  // Render the remembered tab and tab buttons
-  renderVerticalTab(idx, selectedTab);
-function renderVerticalTab(idx, mode) {
-  // Render Buy/Rent tab buttons with correct indicator
+  
+  // Render tab buttons for this strategy
   const tabBtnsDiv = document.getElementById(`verticalTabButtons${idx}`);
   tabBtnsDiv.innerHTML = '';
   ['buy', 'rent'].forEach(tab => {
     const btn = document.createElement('button');
-    btn.id = (tab === 'buy' ? `buyTab${idx}` : `rentTab${idx}`);
-    btn.className = 'vertical-tab' + (mode === tab ? ' active' : '');
+    btn.className = `vertical-tab-button ${tab}${selectedTab === tab ? ' active' : ''}`;
     btn.textContent = tab.charAt(0).toUpperCase() + tab.slice(1);
-    btn.style = `padding: 10px 18px; border: none; background: #eee; cursor: pointer; font-size: 17px; border-radius: ${tab === 'buy' ? '4px 4px 0 0' : '0 0 4px 4px'}; margin-bottom: ${tab === 'buy' ? '2px' : '0'}; border-left: 6px solid ${mode === tab ? '#0074D9' : 'transparent'}; font-weight: ${mode === tab ? 'bold' : 'normal'};`;
     btn.onclick = () => {
+      console.log('🟢 Buy/Rent tab clicked for idx:', idx, 'tab:', tab);
       strategyInputs[idx].selectedTab = tab;
-      // Only re-render the tabview, do not update the graph or simulation
       renderVerticalTab(idx, tab);
     };
     tabBtnsDiv.appendChild(btn);
   });
-  const tabDiv = document.getElementById(`verticalTabContent${idx}`);
-  if (mode === 'buy') {
-    tabDiv.innerHTML = `
-      <form id="strategyForm${idx}">
-        <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 8px;">
-          <div style="display: flex; flex-direction: column; gap: 6px;">
-            <label>House Price (€)</label>
-            <input type="number" name="housePrice" value="400000">
-          </div>
-          <div style="display: flex; flex-direction: column; gap: 6px;">
-            <label>Initial Deposit (€)</label>
-            <input type="number" name="initialDeposit" value="80000">
-          </div>
-          <div style="display: flex; flex-direction: column; gap: 6px;">
-            <label>Loan Term (years)</label>
-            <input type="number" name="loanTerm" value="25">
-          </div>
-          <div style="display: flex; flex-direction: column; gap: 6px; align-items: flex-start; min-width: 180px; position: relative;">
-            <label style="color: #555; font-style: italic;">Loan Monthly Payment (€)</label>
-            <input type="number" name="monthlyRE" value="1200" readonly style="background: #f0f0f0; border: 1px solid #bbb; color: #333; font-weight: bold;">
-            <span style="font-size: 12px; color: #888;">(calculated)</span>
-            <span class="tooltip" style="bottom: 110%; left: 50%; transform: translateX(-50%);">Loan Monthly Payment (€) = (Loan Amount × Monthly Interest Rate) / (1 - (1 + Monthly Interest Rate)<sup>-Loan Term × 12</sup>)<br><br>Values will appear here.</span>
-          </div>
-          <div style="display: flex; flex-direction: column; gap: 6px; align-items: flex-start; min-width: 180px; position: relative;">
-            <label style="color: #555; font-style: italic;">Monthly Maintenance Costs (€)</label>
-            <input type="number" name="monthlyMaintenance" value="333" readonly style="background: #f0f0f0; border: 1px solid #bbb; color: #333; font-weight: bold;">
-            <span style="font-size: 12px; color: #888;">(calculated)</span>
-            <span class="tooltip" style="bottom: 110%; left: 50%; transform: translateX(-50%);">Monthly Maintenance Costs (€) = House Price × Maintenance Rate / 12<br><br>Values will appear here.</span>
-          </div>
-        </div>
-        <div id="monthlyAllowanceMsg${idx}" style="color: #b00; font-weight: bold; margin: 8px 0;"></div>
-      </form>
-    `;
-    // Add listeners for auto simulation
-    const form = document.getElementById(`strategyForm${idx}`);
-    ['housePrice','initialDeposit','loanTerm'].forEach(name => {
-      form[name].addEventListener('input', () => {
-        updateStrategyInputs(idx);
-        runStrategySimulation(idx);
-      });
-    });
-    updateStrategyInputs(idx);
-    runStrategySimulation(idx);
-  } else {
-    tabDiv.innerHTML = `
-      <form id="strategyForm${idx}">
-        <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 8px;">
-          <div style="display: flex; flex-direction: column; gap: 6px;">
-            <label>Monthly Rent (€)</label>
-            <input type="number" name="monthlyRent" value="1200">
-          </div>
-        </div>
-        <div id="monthlyAllowanceMsg${idx}" style="color: #b00; font-weight: bold; margin: 8px 0;"></div>
-      </form>
-    `;
-    // Add listeners for auto simulation
-    const form = document.getElementById(`strategyForm${idx}`);
-    form.monthlyRent.addEventListener('input', () => {
-      updateStrategyInputs(idx, 'rent');
-      runStrategySimulation(idx, 'rent');
-    });
-    updateStrategyInputs(idx, 'rent');
-    runStrategySimulation(idx, 'rent');
-  }
+  
+  // Render tab content for this strategy
+  renderVerticalTabContent(idx, selectedTab);
+  updateStrategyInputs(idx);
+  runStrategySimulation(idx, true); // Skip individual graph updates during init
 }
-  // Add listeners for auto simulation
-  const form = document.getElementById(`strategyForm${idx}`);
-  // Add listeners for house price, deposit, term
-  ['housePrice','initialDeposit','loanTerm'].forEach(name => {
-    form[name].addEventListener('input', () => {
-      updateStrategyInputs(idx);
-      runStrategySimulation(idx);
-    });
-  });
-  // Initial update
+
+function renderStrategyTab(idx) {
+  console.log('🟠 renderStrategyTab called - this should only be used during initialization');
+  const tabContent = document.getElementById('tabContent');
+  if (!strategyInputs[idx].selectedTab) strategyInputs[idx].selectedTab = 'buy';
+  const selectedTab = strategyInputs[idx].selectedTab;
+  
+  tabContent.innerHTML = `
+    <section class="strategy-section buy-rent">
+      <h3>Buy or Rent</h3>
+      <div class="section-content">
+        <div class="vertical-tab-buttons" id="verticalTabButtons${idx}"></div>
+        <div class="vertical-tab-content" id="verticalTabContent${idx}"></div>
+      </div>
+    </section>
+    <section class="strategy-section stocks-bonds">
+      <h3>Stocks and Bonds</h3>
+      <div id="remainderSection${idx}" class="section-content"></div>
+    </section>
+    <section class="strategy-section simulation">
+      <h3>Simulation Table</h3>
+      <div id="strategyTable${idx}" class="section-content"></div>
+    </section>
+  `;
+  
+  renderVerticalTab(idx, selectedTab);
   updateStrategyInputs(idx);
   runStrategySimulation(idx);
 }
 
-function updateStrategyInputs(idx) {
-  // Determine mode (buy/rent)
+function renderVerticalTab(idx, mode) {
+  console.log('🟠 renderVerticalTab called for idx:', idx, 'mode:', mode);
+  // Update tab buttons active state
+  const tabBtnsDiv = document.getElementById(`verticalTabButtons${idx}`);
+  tabBtnsDiv.querySelectorAll('button').forEach(btn => {
+    btn.classList.toggle('active', btn.textContent.toLowerCase() === mode);
+  });
+  
+  // Render tab content
+  renderVerticalTabContent(idx, mode);
+  updateStrategyInputs(idx);
+  runStrategySimulation(idx);
+  updateNetWorthGraph();
+}
+
+function renderVerticalTabContent(idx, mode) {
+  // Render tab content
   const tabDiv = document.getElementById(`verticalTabContent${idx}`);
-  const form = document.getElementById(`strategyForm${idx}`);
-  let mode = 'buy';
-  if (form && form.monthlyRent) mode = 'rent';
-  strategyInputs[idx].mode = mode;
   if (mode === 'buy') {
-    strategyInputs[idx].housePrice = +form.housePrice.value;
-    strategyInputs[idx].initialDeposit = +form.initialDeposit.value;
-    strategyInputs[idx].loanTerm = +form.loanTerm.value;
+    tabDiv.innerHTML = `
+      <form id="strategyForm${idx}">
+        <div class="form-inputs">
+          <div class="input-group">
+            <label>House Price (€)</label>
+            <input type="number" name="housePrice" value="400000">
+          </div>
+          <div class="input-group">
+            <label>Initial Deposit (€)</label>
+            <input type="number" name="initialDeposit" value="80000">
+          </div>
+          <div class="input-group calculated">
+            <label class="calculated-label">Registration Costs (€)</label>
+            <input type="number" name="registrationCosts" value="24000" readonly class="calculated-input">
+            <span class="calculated-note">(calculated)</span>
+            <span class="tooltip">Registration Costs = House Price × Registration Tax Rate</span>
+          </div>
+          <div class="input-group calculated">
+            <label class="calculated-label">Total Cash Required (€)</label>
+            <input type="number" name="totalCashRequired" value="104000" readonly class="calculated-input">
+            <span class="calculated-note">(calculated)</span>
+            <span class="tooltip">Total Cash Required = Initial Deposit + Registration Costs</span>
+          </div>
+          <div class="input-group calculated">
+            <label class="calculated-label">Loan Balance at t=0 (€)</label>
+            <input type="number" name="loanBalance" value="320000" readonly class="calculated-input">
+            <span class="calculated-note">(calculated)</span>
+            <span class="tooltip">Loan Balance = House Price - Initial Deposit</span>
+          </div>
+          <div class="input-group">
+            <label>Loan Term (years)</label>
+            <input type="number" name="loanTerm" value="25">
+          </div>
+          <div class="input-group calculated">
+            <label class="calculated-label">Monthly Loan Payment (€)</label>
+            <input type="number" name="monthlyRE" value="1200" readonly class="calculated-input">
+            <span class="calculated-note">(calculated)</span>
+            <span class="tooltip">Monthly Payment = (Loan Balance × Monthly Interest Rate) / (1 - (1 + Monthly Interest Rate)^(-Loan Term × 12))</span>
+          </div>
+          <div class="input-group calculated">
+            <label class="calculated-label">Monthly Maintenance (€)</label>
+            <input type="number" name="monthlyMaintenance" value="333" readonly class="calculated-input">
+            <span class="calculated-note">(calculated)</span>
+            <span class="tooltip">Monthly Maintenance = House Price × Maintenance Rate / 12</span>
+          </div>
+        </div>
+        <div id="monthlyAllowanceMsg${idx}" class="error-message"></div>
+      </form>
+    `;
   } else {
-    strategyInputs[idx].monthlyRent = +form.monthlyRent.value;
-    strategyInputs[idx].loanTerm = 30;
+    tabDiv.innerHTML = `
+      <form id="strategyForm${idx}">
+        <div class="form-inputs">
+          <div class="input-group">
+            <label>Monthly Rent (€)</label>
+            <input type="number" name="monthlyRent" value="1200">
+          </div>
+        </div>
+        <div id="monthlyAllowanceMsg${idx}" class="error-message"></div>
+      </form>
+    `;
   }
+  
+  // Add event listeners
+  const form = document.getElementById(`strategyForm${idx}`);
+  const fieldNames = mode === 'buy' ? ['housePrice', 'initialDeposit', 'loanTerm'] : ['monthlyRent'];
+  fieldNames.forEach(name => {
+    if (form[name]) {
+      form[name].addEventListener('input', () => {
+        console.log('📝 Form input changed for idx:', idx, 'field:', name);
+        updateStrategyInputs(idx);
+        runStrategySimulation(idx);
+        updateNetWorthGraph();
+      });
+    }
+  });
+}
+
+function updateStrategyInputs(idx) {
+  const form = document.getElementById(`strategyForm${idx}`);
+  const mode = form && form.monthlyRent ? 'rent' : 'buy';
+  strategyInputs[idx].mode = mode;
+  
   const fixed = {
     cashAtHand: +document.getElementById('cashAtHand').value,
     monthlyAllowance: +document.getElementById('monthlyAllowance').value,
     interestRate: +document.getElementById('interestRate').value
   };
+  
   let remainder = 0;
-  let msgDiv = document.getElementById(`monthlyAllowanceMsg${idx}`);
-  let remainderHtml = '';
+  const msgDiv = document.getElementById(`monthlyAllowanceMsg${idx}`);
+  
   if (mode === 'buy') {
     const housePrice = +form.housePrice.value;
     const initialDeposit = +form.initialDeposit.value;
     const loanTerm = +form.loanTerm.value;
-    if (initialDeposit > fixed.cashAtHand) {
-      msgDiv.textContent = 'Error: Initial deposit cannot exceed cash at hand!';
+    
+    strategyInputs[idx].housePrice = housePrice;
+    strategyInputs[idx].initialDeposit = initialDeposit;
+    strategyInputs[idx].loanTerm = loanTerm;
+    
+    // Calculate all the financial values
+    const registrationTaxRate = +document.getElementById('registrationTax').value;
+    const registrationCosts = housePrice * (registrationTaxRate / 100);
+    const totalCashRequired = initialDeposit + registrationCosts;
+    const loanBalance = housePrice - initialDeposit;
+    
+    const monthlyLoanRate = (fixed.interestRate / 100) / 12;
+    const monthlyRE = loanBalance * monthlyLoanRate / (1 - Math.pow(1 + monthlyLoanRate, -loanTerm * 12));
+    const maintenanceRate = +document.getElementById('maintenanceCosts').value;
+    const monthlyMaintenance = housePrice * (maintenanceRate / 100) / 12;
+    
+    // Update all calculated fields
+    form.registrationCosts.value = registrationCosts.toFixed(2);
+    form.totalCashRequired.value = totalCashRequired.toFixed(2);
+    form.loanBalance.value = loanBalance.toFixed(2);
+    form.monthlyRE.value = monthlyRE.toFixed(2);
+    form.monthlyMaintenance.value = monthlyMaintenance.toFixed(2);
+    
+    // Validate total cash required
+    if (totalCashRequired > fixed.cashAtHand) {
+      msgDiv.textContent = `Error: Total cash required (€${totalCashRequired.toFixed(2)}) exceeds cash at hand (€${fixed.cashAtHand})!`;
     } else {
       msgDiv.textContent = '';
     }
-    const loan = housePrice - initialDeposit;
-    const monthlyLoanRate = (fixed.interestRate/100)/12;
-    const monthlyRE = loan * monthlyLoanRate / (1 - Math.pow(1 + monthlyLoanRate, -loanTerm*12));
-    form.monthlyRE.value = monthlyRE.toFixed(2);
-    const maintenanceRate = +document.getElementById('maintenanceCosts').value;
-    const monthlyMaintenance = housePrice * (maintenanceRate / 100) / 12;
-    form.monthlyMaintenance.value = monthlyMaintenance.toFixed(2);
+    
     remainder = fixed.monthlyAllowance - monthlyRE - monthlyMaintenance;
-    remainderHtml = `<div style="display: flex; align-items: flex-end; gap: 16px; margin-bottom: 8px;">
-      <div style="display: flex; flex-direction: column; gap: 6px; align-items: flex-start; position: relative;">
-        <label style="color: #555; font-style: italic;">Remainder for Stocks/Bonds (€)</label>
-        <input type="number" name="monthlyRemainder" value="${remainder > 0 ? remainder.toFixed(2) : 0}" readonly style="background: #f0f0f0; border: 1px solid #bbb; color: #333; font-weight: bold;">
-        <span style="font-size: 12px; color: #888;">(calculated)</span>
-        <span class="tooltip" style="bottom: 110%; left: 50%; transform: translateX(-50%);">Remainder for Stocks/Bonds (€) = Max Investable Monthly Allowance (€) - Loan Monthly Payment (€) - Monthly Maintenance Costs (€)<br><br>monthly allowance (${fixed.monthlyAllowance.toFixed(2)}) - loan (${monthlyRE.toFixed(2)}) - maintenance (${monthlyMaintenance.toFixed(2)}) = <b>${remainder > 0 ? remainder.toFixed(2) : 0}</b></span>
-      </div>
-      <div id="splitInputs${idx}" style="display: flex; gap: 12px; align-items: flex-end;"></div>
-    </div>
-    <div id="remainderMsg${idx}" style="color: #b00; font-weight: bold; margin: 8px 0;"></div>`;
+    
   } else {
-    // Rent mode
     const monthlyRent = +form.monthlyRent.value;
+    strategyInputs[idx].monthlyRent = monthlyRent;
+    strategyInputs[idx].loanTerm = 30;
     remainder = fixed.monthlyAllowance - monthlyRent;
-    remainderHtml = `<div style="display: flex; align-items: flex-end; gap: 16px; margin-bottom: 8px;">
-      <div style="display: flex; flex-direction: column; gap: 6px; align-items: flex-start; position: relative;">
-        <label style="color: #555; font-style: italic;">Remainder for Stocks/Bonds (€)</label>
-        <input type="number" name="monthlyRemainder" value="${remainder > 0 ? remainder.toFixed(2) : 0}" readonly style="background: #f0f0f0; border: 1px solid #bbb; color: #333; font-weight: bold;">
-        <span style="font-size: 12px; color: #888;">(calculated)</span>
-        <span class="tooltip" style="bottom: 110%; left: 50%; transform: translateX(-50%);">Remainder for Stocks/Bonds (€) = Max Investable Monthly Allowance (€) - Monthly Rent (€)<br><br>monthly allowance (${fixed.monthlyAllowance.toFixed(2)}) - rent (${monthlyRent.toFixed(2)}) = <b>${remainder > 0 ? remainder.toFixed(2) : 0}</b></span>
-      </div>
-      <div id="splitInputs${idx}" style="display: flex; gap: 12px; align-items: flex-end;"></div>
-    </div>
-    <div id="remainderMsg${idx}" style="color: #b00; font-weight: bold; margin: 8px 0;"></div>`;
   }
-  document.getElementById(`remainderSection${idx}`).innerHTML = remainderHtml;
+  
+  updateRemainderSection(idx, remainder, mode, fixed.monthlyAllowance);
+}
+
+function updateRemainderSection(idx, remainder, mode, monthlyAllowance) {
+  const remainderSection = document.getElementById(`remainderSection${idx}`);
+  const form = document.getElementById(`strategyForm${idx}`);
+  
+  const remainderValue = remainder > 0 ? remainder.toFixed(2) : 0;
+  const tooltipText = mode === 'buy' 
+    ? `Remainder = Monthly Allowance - Loan Payment - Maintenance`
+    : `Remainder = Monthly Allowance - Monthly Rent`;
+  
+  remainderSection.innerHTML = `
+    <div class="remainder-section">
+      <div class="input-group calculated">
+        <label class="calculated-label">Remainder for Stocks/Bonds (€)</label>
+        <input type="number" name="monthlyRemainder" value="${remainderValue}" readonly class="calculated-input">
+        <span class="calculated-note">(calculated)</span>
+        <span class="tooltip">${tooltipText}</span>
+      </div>
+      <div id="splitInputs${idx}" class="split-inputs"></div>
+    </div>
+    <div id="remainderMsg${idx}" class="error-message"></div>
+  `;
+  
   // Show split inputs only if remainder > 0
   const splitDiv = document.getElementById(`splitInputs${idx}`);
   if (remainder > 0) {
     const stocksPct = strategies[idx].splits.stocks;
     const bondsPct = 100 - stocksPct;
-    const stocksVal = ((remainder * stocksPct / 100)).toFixed(2);
-    const bondsVal = ((remainder * bondsPct / 100)).toFixed(2);
+    const stocksVal = (remainder * stocksPct / 100).toFixed(2);
+    const bondsVal = (remainder * bondsPct / 100).toFixed(2);
+    
     splitDiv.innerHTML = `
-      <div style="display: flex; flex-direction: column; align-items: flex-start;">
-        <label style="font-size: 18px;">Stocks %</label>
-        <input type="number" name="stocks" min="0" max="100" value="${stocksPct}" style="width: 60px; font-size: 18px; padding: 6px;">
-        <span id="stocksNominal${idx}" style="font-size: 16px, color: #888, margin-top: 2px;">${stocksVal} €</span>
+      <div class="split-input-group">
+        <label>Stocks %</label>
+        <input type="number" name="stocks" min="0" max="100" value="${stocksPct}">
+        <span class="nominal-value">${stocksVal} €</span>
       </div>
-      <div style="display: flex; flex-direction: column; align-items: flex-start;">
-        <label style="font-size: 18px;">Bonds %</label>
-        <input type="number" name="bonds" value="${bondsPct}" style="width: 60px; font-size: 18px; padding: 6px; background: #eee; color: #888;" readonly>
-        <span id="bondsNominal${idx}" style="font-size: 16px, color: #888, margin-top: 2px;">${bondsVal} €</span>
+      <div class="split-input-group">
+        <label>Bonds %</label>
+        <input type="number" name="bonds" value="${bondsPct}" readonly>
+        <span class="nominal-value">${bondsVal} €</span>
       </div>
     `;
-    splitDiv.querySelector("[name='stocks']").addEventListener('input', () => {
-      const stocksInput = splitDiv.querySelector("[name='stocks']");
-      let stocksPctNew = +stocksInput.value;
-      if (stocksPctNew < 0) stocksPctNew = 0;
-      if (stocksPctNew > 100) stocksPctNew = 100;
-      strategies[idx].splits.stocks = stocksPctNew;
+    
+    // Add listener for stocks input
+    splitDiv.querySelector("[name='stocks']").addEventListener('input', (e) => {
+      let stocksPctNew = Math.max(0, Math.min(100, +e.target.value));
       const bondsPctNew = 100 - stocksPctNew;
+      
+      strategies[idx].splits.stocks = stocksPctNew;
       splitDiv.querySelector("[name='bonds']").value = bondsPctNew;
-      splitDiv.querySelector(`#stocksNominal${idx}`).textContent = ((remainder * stocksPctNew / 100).toFixed(2)) + ' €';
-      splitDiv.querySelector(`#bondsNominal${idx}`).textContent = ((remainder * bondsPctNew / 100).toFixed(2)) + ' €';
+      splitDiv.querySelector(".nominal-value").textContent = (remainder * stocksPctNew / 100).toFixed(2) + ' €';
+      splitDiv.querySelectorAll(".nominal-value")[1].textContent = (remainder * bondsPctNew / 100).toFixed(2) + ' €';
+      
       runStrategySimulation(idx);
       updateNetWorthGraph();
     });
-  } else {
-    splitDiv.innerHTML = '';
   }
-  // Error message
+  
+  // Error message for negative remainder
   const remainderMsg = document.getElementById(`remainderMsg${idx}`);
   if (remainder < 0) {
-    remainderMsg.textContent = mode === 'buy' ? 'Error: Monthly real estate payment plus maintenance exceeds max investable monthly allowance!' : 'Error: Monthly rent exceeds max investable monthly allowance!';
+    const errorText = mode === 'buy' 
+      ? 'Error: Monthly real estate payment plus maintenance exceeds max investable monthly allowance!'
+      : 'Error: Monthly rent exceeds max investable monthly allowance!';
+    remainderMsg.textContent = errorText;
   } else {
     remainderMsg.textContent = '';
   }
 }
 
-// Add listeners for fixed variables to auto-update all strategies and graph
 function addFixedVarListeners() {
   const fixedForm = document.getElementById('fixedVarsForm');
   Array.from(fixedForm.elements).forEach(el => {
     el.addEventListener('input', () => {
-      // Re-render all tabs and update graph
-      renderTabButtons();
-      renderStrategyTab(document.querySelector('.tab-buttons button.active')?.textContent === strategies[0].name ? 0 :
-                        document.querySelector('.tab-buttons button.active')?.textContent === strategies[1].name ? 1 : 2);
+      // Re-render current tab and update graph
+      const activeIdx = [...document.querySelectorAll('.tab-buttons button')]
+        .findIndex(btn => btn.classList.contains('active'));
+      renderStrategyTab(activeIdx);
       updateNetWorthGraph();
     });
   });
-  // Add listeners for strategy inputs to update graph for all strategies
-  for (let idx = 0; idx < strategies.length; idx++) {
-    const form = document.getElementById(`strategyForm${idx}`);
-    if (form) {
-      Array.from(form.elements).forEach(el => {
-        if (el.type === 'number' && !el.readOnly) {
-          el.addEventListener('input', () => {
-            // Rerun all strategy simulations
-            for (let idx = 0; idx < strategies.length; idx++) {
-              runStrategySimulation(idx);
-            }
-            updateNetWorthGraph();
-          });
-        }
-      });
-    }
-  }
 }
 
-function runStrategySimulation(idx) {
+function runStrategySimulation(idx, skipGraphUpdate = false) {
+  console.log('🟡 runStrategySimulation called for idx:', idx, 'skipGraphUpdate:', skipGraphUpdate);
   // Get fixed vars
   const fixed = {
     cashAtHand: +document.getElementById('cashAtHand').value,
@@ -466,39 +694,56 @@ function runStrategySimulation(idx) {
   const result = simulateStrategy(fixed, housePrice, initialDeposit, loanTerm, monthlyRE, monthlyRemainder, stocks, bonds);
   strategyInputs[idx].simRows = result;
   renderStrategyTable(idx, result);
-  // Only update the graph if simulation data changed, not on tab switch
-  if (typeof idx === 'number') updateNetWorthGraph(idx);
+  // Only update the graph if not skipping
+  if (!skipGraphUpdate) {
+    console.log('🔴 updateNetWorthGraph called from runStrategySimulation');
+    updateNetWorthGraph(idx);
+  }
 }
 
 function simulateStrategy(fixed, housePrice, initialDeposit, loanTerm, monthlyRE, monthlyRemainder, stocks, bonds) {
-  // Always simulate up to maxYears (from updateNetWorthGraph)
-  const maxYears = Math.max(...strategyInputs.map(input => input.loanTerm));
+  // Always simulate for 30 years regardless of loan term
+  const simulationYears = 30;
   let rows = [];
-let registrationTax = housePrice * (fixed.registrationTax/100);
-let investedCash = fixed.cashAtHand - initialDeposit - registrationTax;
-let realEstateValue = housePrice;
-let realEstateBalance = housePrice - initialDeposit - registrationTax;
-let stockBalance = investedCash * (stocks/100);
-let bondBalance = investedCash * (bonds/100);
-let loanBalance = housePrice - initialDeposit + registrationTax;
-  let lastRow = null;
-  for (let y = 0; y <= maxYears; y++) {
+  
+  // Initial setup
+  let registrationTax = housePrice * (fixed.registrationTax/100);
+  let investedCash = fixed.cashAtHand - initialDeposit - registrationTax;
+  let realEstateValue = housePrice;
+  let stockBalance = investedCash * (stocks/100);
+  let bondBalance = investedCash * (bonds/100);
+  let loanBalance = housePrice - initialDeposit;
+  
+  for (let y = 0; y <= simulationYears; y++) {
     let penalty = 0;
     if (loanBalance > 0 && y < loanTerm) {
       penalty = loanBalance * (fixed.prepaymentPenalty/100);
     }
+    
     if (y > 0) {
       realEstateValue *= (1 + fixed.avgRealEstateReturn/100);
-      stockBalance = (stockBalance + (monthlyRemainder/12) * (stocks/100) * 12) * (1 + fixed.avgStockReturn/100);
-      bondBalance = (bondBalance + (monthlyRemainder/12) * (bonds/100) * 12) * (1 + fixed.avgBondReturn/100);
-      // Amortize loan only for loanTerm years
-      if (y <= loanTerm) {
+      
+      // Calculate monthly investment amount
+      let monthlyInvestment = monthlyRemainder;
+      
+      // If loan is still active, amortize it
+      if (y <= loanTerm && loanBalance > 0) {
         let monthlyLoanRate = (fixed.interestRate/100)/12;
         let interestPaid = loanBalance * monthlyLoanRate * 12;
         let principalPaid = Math.min(monthlyRE * 12 - interestPaid, loanBalance);
         loanBalance -= principalPaid;
         if (loanBalance < 0) loanBalance = 0;
+      } else {
+        // Loan is paid off - redirect monthly loan payment to investments
+        monthlyInvestment += monthlyRE;
       }
+      
+      // Invest the available money in stocks and bonds
+      let monthlyStockInvestment = monthlyInvestment * (stocks/100);
+      let monthlyBondInvestment = monthlyInvestment * (bonds/100);
+      
+      stockBalance = (stockBalance + monthlyStockInvestment * 12) * (1 + fixed.avgStockReturn/100);
+      bondBalance = (bondBalance + monthlyBondInvestment * 12) * (1 + fixed.avgBondReturn/100);
     }
     let netWorth = realEstateValue + stockBalance + bondBalance - loanBalance - penalty;
     let row = {
@@ -544,6 +789,8 @@ function renderStrategyTable(idx, rows) {
 }
 
 function updateNetWorthGraph(changedIdx) {
+  console.log('🔴 updateNetWorthGraph called with changedIdx:', changedIdx);
+  console.trace('🔴 Call stack:');
   // Always show all three graphs, but only update the changed strategy's data if changedIdx is provided
   const cashAtHand = +document.getElementById('cashAtHand').value;
   // Find the union of all years across all strategies
@@ -600,9 +847,8 @@ function updateNetWorthGraph(changedIdx) {
 
 window.onload = function() {
   renderTabButtons();
-  renderStrategyTab(0);
+  initializeAllStrategies();
   addFixedVarListeners();
-  updateNetWorthGraph();
 };
 </script>
 </body>
