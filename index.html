@@ -175,6 +175,34 @@
             position: relative;
         }
         
+        .input-group.calculated .calculated-input:hover + .input-tooltip {
+            visibility: visible;
+            opacity: 1;
+        }
+        
+        .input-tooltip {
+            visibility: hidden;
+            background-color: #333;
+            color: #fff;
+            text-align: left;
+            border-radius: 6px;
+            padding: 8px;
+            position: absolute;
+            z-index: 1000;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.3s;
+            max-width: 400px;
+            min-width: 250px;
+            font-size: 13px;
+            pointer-events: none;
+            white-space: normal;
+            word-wrap: break-word;
+            line-height: 1.3;
+        }
+        
         .input-group label.calculated-label {
             color: #555;
             font-style: italic;
@@ -282,6 +310,7 @@
             <div class="form-row"><label for="prepaymentPenalty">Prepayment Penalty (% of remaining loan)</label><input type="number" id="prepaymentPenalty" step="0.01" value="1.0"></div>
             <div class="form-row"><label for="registrationTax">Registration Tax (% of house price)</label><input type="number" id="registrationTax" step="0.01" value="6.0"></div>
             <div class="form-row"><label for="maintenanceCosts">Maintenance Costs (% of house price/year)</label><input type="number" id="maintenanceCosts" step="0.01" value="1.0"></div>
+            <div class="form-row"><label for="simulationYears">Simulation Years</label><input type="number" id="simulationYears" min="1" max="50" value="30"></div>
         </form>
     </aside>
     <main style="flex: 1;">
@@ -368,10 +397,6 @@ function initializeAllStrategies() {
       </section>
       <section class="strategy-section simulation">
         <h3>Simulation Table</h3>
-        <div class="simulation-controls">
-          <label for="simulationYears${idx}">Years to simulate:</label>
-          <input type="number" id="simulationYears${idx}" min="1" max="50" value="30" style="width: 60px; margin-left: 8px;">
-        </div>
         <div id="strategyTable${idx}" class="section-content"></div>
       </section>
     </div>
@@ -409,16 +434,6 @@ function initializeStrategy(idx) {
   renderVerticalTabContent(idx, selectedTab);
   updateStrategyInputs(idx);
   runStrategySimulation(idx, true); // Skip individual graph updates during init
-  
-  // Add event listener for simulation years input
-  const simulationYearsInput = document.getElementById(`simulationYears${idx}`);
-  if (simulationYearsInput) {
-    simulationYearsInput.addEventListener('input', () => {
-      console.log('📝 Simulation years changed for idx:', idx);
-      runStrategySimulation(idx);
-      updateNetWorthGraph();
-    });
-  }
 }
 
 function renderStrategyTab(idx) {
@@ -482,13 +497,19 @@ function renderVerticalTabContent(idx, mode) {
           </div>
           <div class="input-group calculated">
             <label class="calculated-label">Registration Costs (€)</label>
-            <input type="number" name="registrationCosts" value="24000" readonly class="calculated-input">
+            <div style="position: relative;">
+              <input type="number" name="registrationCosts" value="24000" readonly class="calculated-input">
+              <span class="input-tooltip">Registration Costs = House Price × Registration Tax Rate</span>
+            </div>
             <span class="calculated-note">(calculated)</span>
             <span class="tooltip">Registration Costs = House Price × Registration Tax Rate</span>
           </div>
           <div class="input-group calculated">
             <label class="calculated-label">Loan Balance at t=0 (€)</label>
-            <input type="number" name="loanBalance" value="324000" readonly class="calculated-input">
+            <div style="position: relative;">
+              <input type="number" name="loanBalance" value="324000" readonly class="calculated-input">
+              <span class="input-tooltip">Loan Balance = House Price - Initial Deposit + Registration Costs</span>
+            </div>
             <span class="calculated-note">(calculated)</span>
             <span class="tooltip">Loan Balance = House Price - Initial Deposit + Registration Costs</span>
           </div>
@@ -498,13 +519,19 @@ function renderVerticalTabContent(idx, mode) {
           </div>
           <div class="input-group calculated">
             <label class="calculated-label">Monthly Loan Payment (€)</label>
-            <input type="number" name="monthlyRE" value="1200" readonly class="calculated-input">
+            <div style="position: relative;">
+              <input type="number" name="monthlyRE" value="1200" readonly class="calculated-input">
+              <span class="input-tooltip">Monthly Payment = (Loan Balance × Monthly Interest Rate) / (1 - (1 + Monthly Interest Rate)^(-Loan Term × 12))</span>
+            </div>
             <span class="calculated-note">(calculated)</span>
             <span class="tooltip">Monthly Payment = (Loan Balance × Monthly Interest Rate) / (1 - (1 + Monthly Interest Rate)^(-Loan Term × 12))</span>
           </div>
           <div class="input-group calculated">
             <label class="calculated-label">Monthly Maintenance (€)</label>
-            <input type="number" name="monthlyMaintenance" value="333" readonly class="calculated-input">
+            <div style="position: relative;">
+              <input type="number" name="monthlyMaintenance" value="333" readonly class="calculated-input">
+              <span class="input-tooltip">Monthly Maintenance = House Price × Maintenance Rate / 12</span>
+            </div>
             <span class="calculated-note">(calculated)</span>
             <span class="tooltip">Monthly Maintenance = House Price × Maintenance Rate / 12</span>
           </div>
@@ -582,23 +609,39 @@ function updateStrategyInputs(idx) {
     
     // Update tooltips with actual values
     const registrationTooltip = form.querySelector('[name="registrationCosts"]').parentElement.querySelector('.tooltip');
+    const registrationInputTooltip = form.querySelector('[name="registrationCosts"]').nextElementSibling;
     if (registrationTooltip) {
       registrationTooltip.textContent = `Registration Costs = House Price (€${housePrice.toLocaleString()}) × Registration Tax Rate (${registrationTaxRate}%)`;
     }
+    if (registrationInputTooltip) {
+      registrationInputTooltip.textContent = `Registration Costs = House Price (€${housePrice.toLocaleString()}) × Registration Tax Rate (${registrationTaxRate}%)`;
+    }
     
-    const loanBalanceTooltip = form.querySelector('[name="loanBalance"]').parentElement.querySelector('.tooltip');
+    const loanBalanceTooltip = form.querySelector('[name="loanBalance"]').parentElement.parentElement.querySelector('.tooltip');
+    const loanBalanceInputTooltip = form.querySelector('[name="loanBalance"]').nextElementSibling;
     if (loanBalanceTooltip) {
       loanBalanceTooltip.textContent = `Loan Balance = House Price (€${housePrice.toLocaleString()}) - Initial Deposit (€${initialDeposit.toLocaleString()}) + Registration Costs (€${registrationCosts.toLocaleString()})`;
     }
+    if (loanBalanceInputTooltip) {
+      loanBalanceInputTooltip.textContent = `Loan Balance = House Price (€${housePrice.toLocaleString()}) - Initial Deposit (€${initialDeposit.toLocaleString()}) + Registration Costs (€${registrationCosts.toLocaleString()})`;
+    }
     
-    const monthlyRETooltip = form.querySelector('[name="monthlyRE"]').parentElement.querySelector('.tooltip');
+    const monthlyRETooltip = form.querySelector('[name="monthlyRE"]').parentElement.parentElement.querySelector('.tooltip');
+    const monthlyREInputTooltip = form.querySelector('[name="monthlyRE"]').nextElementSibling;
     if (monthlyRETooltip) {
       monthlyRETooltip.textContent = `Monthly Payment = Loan Balance (€${loanBalance.toLocaleString()}) × Monthly Interest Rate (${(monthlyLoanRate * 100).toFixed(3)}%) / (1 - (1 + Monthly Interest Rate)^(-Loan Term (${loanTerm}) × 12))`;
     }
+    if (monthlyREInputTooltip) {
+      monthlyREInputTooltip.textContent = `Monthly Payment = Loan Balance (€${loanBalance.toLocaleString()}) × Monthly Interest Rate (${(monthlyLoanRate * 100).toFixed(3)}%) / (1 - (1 + Monthly Interest Rate)^(-Loan Term (${loanTerm}) × 12))`;
+    }
     
-    const maintenanceTooltip = form.querySelector('[name="monthlyMaintenance"]').parentElement.querySelector('.tooltip');
+    const maintenanceTooltip = form.querySelector('[name="monthlyMaintenance"]').parentElement.parentElement.querySelector('.tooltip');
+    const maintenanceInputTooltip = form.querySelector('[name="monthlyMaintenance"]').nextElementSibling;
     if (maintenanceTooltip) {
       maintenanceTooltip.textContent = `Monthly Maintenance = House Price (€${housePrice.toLocaleString()}) × Maintenance Rate (${maintenanceRate}%) / 12`;
+    }
+    if (maintenanceInputTooltip) {
+      maintenanceInputTooltip.textContent = `Monthly Maintenance = House Price (€${housePrice.toLocaleString()}) × Maintenance Rate (${maintenanceRate}%) / 12`;
     }
     
     // Validate initial deposit against cash at hand
@@ -694,11 +737,19 @@ function addFixedVarListeners() {
   const fixedForm = document.getElementById('fixedVarsForm');
   Array.from(fixedForm.elements).forEach(el => {
     el.addEventListener('input', () => {
-      // Re-render current tab and update graph
-      const activeIdx = [...document.querySelectorAll('.tab-buttons button')]
-        .findIndex(btn => btn.classList.contains('active'));
-      renderStrategyTab(activeIdx);
-      updateNetWorthGraph();
+      if (el.id === 'simulationYears') {
+        // When simulation years change, update all strategies
+        strategies.forEach((_, idx) => {
+          runStrategySimulation(idx, true);
+        });
+        updateNetWorthGraph();
+      } else {
+        // Re-render current tab and update graph for other fixed variables
+        const activeIdx = [...document.querySelectorAll('.tab-buttons button')]
+          .findIndex(btn => btn.classList.contains('active'));
+        renderStrategyTab(activeIdx);
+        updateNetWorthGraph();
+      }
     });
   });
 }
@@ -774,9 +825,8 @@ function runStrategySimulation(idx, skipGraphUpdate = false) {
 }
 
 function simulateStrategy(fixed, housePrice, initialDeposit, loanTerm, monthlyRE, monthlyRemainder, stocks, bonds, strategyIdx) {
-  // Get simulation years from the input field, default to 30 if not found
-  const simulationYearsInput = document.getElementById(`simulationYears${strategyIdx}`);
-  const simulationYears = simulationYearsInput ? +simulationYearsInput.value : 30;
+  // Get simulation years from the central input field
+  const simulationYears = +document.getElementById('simulationYears').value;
   let rows = [];
   
   // Initial setup
