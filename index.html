@@ -902,15 +902,6 @@ function renderVerticalTabContent(idx, mode) {
             <span class="tooltip">Loan Balance = House Price - Initial Deposit + Registration Costs</span>
           </div>
           <div class="input-group calculated">
-            <label class="calculated-label">Monthly Loan Payment</label>
-            <div style="position: relative;">
-              <input type="number" name="monthlyRE" value="1200" readonly class="calculated-input">
-              <span class="input-tooltip">Monthly Payment = (Loan Balance × Monthly Interest Rate) / (1 - (1 + Monthly Interest Rate)^(-Loan Term × 12))</span>
-            </div>
-            <span class="calculated-note">(calculated)</span>
-            <span class="tooltip">Monthly Payment = (Loan Balance × Monthly Interest Rate) / (1 - (1 + Monthly Interest Rate)^(-Loan Term × 12))</span>
-          </div>
-          <div class="input-group calculated">
             <label class="calculated-label">Sum of Cash Monthly Payments</label>
             <div style="position: relative;">
               <input type="number" name="totalLoanRepayment" value="0" readonly class="calculated-input">
@@ -927,6 +918,15 @@ function renderVerticalTabContent(idx, mode) {
             </div>
             <span class="calculated-note">(calculated)</span>
             <span class="tooltip">Total Interest = Total Loan Repayment - Initial Loan Balance</span>
+          </div>
+          <div class="input-group calculated">
+            <label class="calculated-label">Monthly Loan Payment</label>
+            <div style="position: relative;">
+              <input type="number" name="monthlyRE" value="1200" readonly class="calculated-input">
+              <span class="input-tooltip">Monthly Payment = (Loan Balance × Monthly Interest Rate) / (1 - (1 + Monthly Interest Rate)^(-Loan Term × 12))</span>
+            </div>
+            <span class="calculated-note">(calculated)</span>
+            <span class="tooltip">Monthly Payment = (Loan Balance × Monthly Interest Rate) / (1 - (1 + Monthly Interest Rate)^(-Loan Term × 12))</span>
           </div>
           <div class="input-group calculated">
             <label class="calculated-label">Monthly Maintenance</label>
