@@ -428,9 +428,9 @@
     <aside>
         <h2>Fixed Variables</h2>
         <form id="fixedVarsForm">
-            <div class="form-row"><label for="cashAtHand">Cash at Hand (€)</label><input type="number" id="cashAtHand" value="80000"></div>
+            <div class="form-row"><label for="cashAtHand">Cash at Hand</label><input type="number" id="cashAtHand" value="80000"></div>
             <div class="form-row"><label for="interestRate">Loan Interest Rate (%/year)</label><input type="number" id="interestRate" step="0.01" value="3.0"></div>
-            <div class="form-row"><label for="monthlyAllowance">Max Investable Monthly Allowance (€)</label><input type="number" id="monthlyAllowance" value="1500"></div>
+            <div class="form-row"><label for="monthlyAllowance">Max Investable Monthly Allowance</label><input type="number" id="monthlyAllowance" value="1500"></div>
             <div class="form-row"><label for="avgStockReturn">Avg. Stock Return (%/year)</label><input type="number" id="avgStockReturn" step="0.01" value="8.0"></div>
             <div class="form-row"><label for="avgRealEstateReturn">Avg. Real Estate Return (%/year)</label><input type="number" id="avgRealEstateReturn" step="0.01" value="3.0"></div>
             <div class="form-row"><label for="avgBondReturn">Avg. Bond Return (%/year)</label><input type="number" id="avgBondReturn" step="0.01" value="2.0"></div>
@@ -872,15 +872,15 @@ function renderVerticalTabContent(idx, mode) {
       <form id="strategyForm${idx}">
         <div class="form-inputs">
           <div class="input-group">
-            <label>House Price (€)</label>
+            <label>House Price</label>
             <input type="number" name="housePrice" value="${strategyInput.housePrice || 300000}">
           </div>
           <div class="input-group">
-            <label>Initial Deposit (€)</label>
+            <label>Initial Deposit</label>
             <input type="number" name="initialDeposit" value="${strategyInput.initialDeposit || 80000}">
           </div>
           <div class="input-group calculated">
-            <label class="calculated-label">Registration Costs (€)</label>
+            <label class="calculated-label">Registration Costs</label>
             <div style="position: relative;">
               <input type="number" name="registrationCosts" value="24000" readonly class="calculated-input">
               <span class="input-tooltip">Registration Costs = House Price × Registration Tax Rate</span>
@@ -889,7 +889,7 @@ function renderVerticalTabContent(idx, mode) {
             <span class="tooltip">Registration Costs = House Price × Registration Tax Rate</span>
           </div>
           <div class="input-group calculated">
-            <label class="calculated-label">Loan Balance at t=0 (€)</label>
+            <label class="calculated-label">Loan Balance at t=0</label>
             <div style="position: relative;">
               <input type="number" name="loanBalance" value="324000" readonly class="calculated-input">
               <span class="input-tooltip">Loan Balance = House Price - Initial Deposit + Registration Costs</span>
@@ -902,7 +902,7 @@ function renderVerticalTabContent(idx, mode) {
             <input type="number" name="loanTerm" value="${strategyInput.loanTerm || 25}">
           </div>
           <div class="input-group calculated">
-            <label class="calculated-label">Monthly Loan Payment (€)</label>
+            <label class="calculated-label">Monthly Loan Payment</label>
             <div style="position: relative;">
               <input type="number" name="monthlyRE" value="1200" readonly class="calculated-input">
               <span class="input-tooltip">Monthly Payment = (Loan Balance × Monthly Interest Rate) / (1 - (1 + Monthly Interest Rate)^(-Loan Term × 12))</span>
@@ -911,7 +911,25 @@ function renderVerticalTabContent(idx, mode) {
             <span class="tooltip">Monthly Payment = (Loan Balance × Monthly Interest Rate) / (1 - (1 + Monthly Interest Rate)^(-Loan Term × 12))</span>
           </div>
           <div class="input-group calculated">
-            <label class="calculated-label">Monthly Maintenance (€)</label>
+            <label class="calculated-label">Total Loan Repayment</label>
+            <div style="position: relative;">
+              <input type="number" name="totalLoanRepayment" value="0" readonly class="calculated-input">
+              <span class="input-tooltip">Total Loan Repayment = Monthly Payment × 12 × Loan Term</span>
+            </div>
+            <span class="calculated-note">(calculated)</span>
+            <span class="tooltip">Total Loan Repayment = Monthly Payment × 12 × Loan Term</span>
+          </div>
+          <div class="input-group calculated">
+            <label class="calculated-label">Total Interest</label>
+            <div style="position: relative;">
+              <input type="number" name="totalInterest" value="0" readonly class="calculated-input">
+              <span class="input-tooltip">Total Interest = Total Loan Repayment - Initial Loan Balance</span>
+            </div>
+            <span class="calculated-note">(calculated)</span>
+            <span class="tooltip">Total Interest = Total Loan Repayment - Initial Loan Balance</span>
+          </div>
+          <div class="input-group calculated">
+            <label class="calculated-label">Monthly Maintenance</label>
             <div style="position: relative;">
               <input type="number" name="monthlyMaintenance" value="333" readonly class="calculated-input">
               <span class="input-tooltip">Monthly Maintenance = House Price × Maintenance Rate / 12</span>
@@ -928,7 +946,7 @@ function renderVerticalTabContent(idx, mode) {
       <form id="strategyForm${idx}">
         <div class="form-inputs">
           <div class="input-group">
-            <label>Monthly Rent (€)</label>
+            <label>Monthly Rent</label>
             <input type="number" name="monthlyRent" value="${strategyInput.monthlyRent || 1500}">
           </div>
         </div>
@@ -986,6 +1004,8 @@ function updateStrategyInputs(idx) {
     
     const monthlyLoanRate = (fixed.interestRate / 100) / 12;
     const monthlyRE = loanBalance * monthlyLoanRate / (1 - Math.pow(1 + monthlyLoanRate, -loanTerm * 12));
+    const totalLoanRepayment = monthlyRE * 12 * loanTerm;
+    const totalInterest = totalLoanRepayment - loanBalance;
     const maintenanceRate = +document.getElementById('maintenanceCosts').value;
     const monthlyMaintenance = housePrice * (maintenanceRate / 100) / 12;
     
@@ -993,48 +1013,50 @@ function updateStrategyInputs(idx) {
     form.registrationCosts.value = registrationCosts.toFixed(2);
     form.loanBalance.value = loanBalance.toFixed(2);
     form.monthlyRE.value = monthlyRE.toFixed(2);
+    form.totalLoanRepayment.value = totalLoanRepayment.toFixed(2);
+    form.totalInterest.value = totalInterest.toFixed(2);
     form.monthlyMaintenance.value = monthlyMaintenance.toFixed(2);
     
     // Update tooltips with actual values
     const registrationTooltip = form.querySelector('[name="registrationCosts"]').parentElement.querySelector('.tooltip');
     const registrationInputTooltip = form.querySelector('[name="registrationCosts"]').nextElementSibling;
     if (registrationTooltip) {
-      registrationTooltip.textContent = `Registration Costs = House Price (€${housePrice.toLocaleString()}) × Registration Tax Rate (${registrationTaxRate}%)`;
+      registrationTooltip.textContent = `Registration Costs = House Price (${housePrice.toLocaleString()}) × Registration Tax Rate (${registrationTaxRate}%)`;
     }
     if (registrationInputTooltip) {
-      registrationInputTooltip.textContent = `Registration Costs = House Price (€${housePrice.toLocaleString()}) × Registration Tax Rate (${registrationTaxRate}%)`;
+      registrationInputTooltip.textContent = `Registration Costs = House Price (${housePrice.toLocaleString()}) × Registration Tax Rate (${registrationTaxRate}%)`;
     }
     
     const loanBalanceTooltip = form.querySelector('[name="loanBalance"]').parentElement.parentElement.querySelector('.tooltip');
     const loanBalanceInputTooltip = form.querySelector('[name="loanBalance"]').nextElementSibling;
     if (loanBalanceTooltip) {
-      loanBalanceTooltip.textContent = `Loan Balance = House Price (€${housePrice.toLocaleString()}) - Initial Deposit (€${initialDeposit.toLocaleString()}) + Registration Costs (€${registrationCosts.toLocaleString()})`;
+      loanBalanceTooltip.textContent = `Loan Balance = House Price (${housePrice.toLocaleString()}) - Initial Deposit (${initialDeposit.toLocaleString()}) + Registration Costs (${registrationCosts.toLocaleString()})`;
     }
     if (loanBalanceInputTooltip) {
-      loanBalanceInputTooltip.textContent = `Loan Balance = House Price (€${housePrice.toLocaleString()}) - Initial Deposit (€${initialDeposit.toLocaleString()}) + Registration Costs (€${registrationCosts.toLocaleString()})`;
+      loanBalanceInputTooltip.textContent = `Loan Balance = House Price (${housePrice.toLocaleString()}) - Initial Deposit (${initialDeposit.toLocaleString()}) + Registration Costs (${registrationCosts.toLocaleString()})`;
     }
     
     const monthlyRETooltip = form.querySelector('[name="monthlyRE"]').parentElement.parentElement.querySelector('.tooltip');
     const monthlyREInputTooltip = form.querySelector('[name="monthlyRE"]').nextElementSibling;
     if (monthlyRETooltip) {
-      monthlyRETooltip.textContent = `Monthly Payment = Loan Balance (€${loanBalance.toLocaleString()}) × Monthly Interest Rate (${(monthlyLoanRate * 100).toFixed(3)}%) / (1 - (1 + Monthly Interest Rate)^(-Loan Term (${loanTerm}) × 12))`;
+      monthlyRETooltip.textContent = `Monthly Payment = Loan Balance (${loanBalance.toLocaleString()}) × Monthly Interest Rate (${(monthlyLoanRate * 100).toFixed(3)}%) / (1 - (1 + Monthly Interest Rate)^(-Loan Term (${loanTerm}) × 12))`;
     }
     if (monthlyREInputTooltip) {
-      monthlyREInputTooltip.textContent = `Monthly Payment = Loan Balance (€${loanBalance.toLocaleString()}) × Monthly Interest Rate (${(monthlyLoanRate * 100).toFixed(3)}%) / (1 - (1 + Monthly Interest Rate)^(-Loan Term (${loanTerm}) × 12))`;
+      monthlyREInputTooltip.textContent = `Monthly Payment = Loan Balance (${loanBalance.toLocaleString()}) × Monthly Interest Rate (${(monthlyLoanRate * 100).toFixed(3)}%) / (1 - (1 + Monthly Interest Rate)^(-Loan Term (${loanTerm}) × 12))`;
     }
     
     const maintenanceTooltip = form.querySelector('[name="monthlyMaintenance"]').parentElement.parentElement.querySelector('.tooltip');
     const maintenanceInputTooltip = form.querySelector('[name="monthlyMaintenance"]').nextElementSibling;
     if (maintenanceTooltip) {
-      maintenanceTooltip.textContent = `Monthly Maintenance = House Price (€${housePrice.toLocaleString()}) × Maintenance Rate (${maintenanceRate}%) / 12`;
+      maintenanceTooltip.textContent = `Monthly Maintenance = House Price (${housePrice.toLocaleString()}) × Maintenance Rate (${maintenanceRate}%) / 12`;
     }
     if (maintenanceInputTooltip) {
-      maintenanceInputTooltip.textContent = `Monthly Maintenance = House Price (€${housePrice.toLocaleString()}) × Maintenance Rate (${maintenanceRate}%) / 12`;
+      maintenanceInputTooltip.textContent = `Monthly Maintenance = House Price (${housePrice.toLocaleString()}) × Maintenance Rate (${maintenanceRate}%) / 12`;
     }
     
     // Validate initial deposit against cash at hand
     if (initialDeposit > fixed.cashAtHand) {
-      msgDiv.textContent = `Error: Initial deposit (€${initialDeposit.toFixed(2)}) exceeds cash at hand (€${fixed.cashAtHand})!`;
+      msgDiv.textContent = `Error: Initial deposit (${initialDeposit.toFixed(2)}) exceeds cash at hand (${fixed.cashAtHand})!`;
     } else {
       msgDiv.textContent = '';
     }
@@ -1061,16 +1083,27 @@ function updateRemainderSection(idx, remainder, mode, monthlyAllowance) {
     ? `Remainder = Monthly Allowance - Loan Payment - Maintenance`
     : `Remainder = Monthly Allowance - Monthly Rent`;
   
+  // Calculate remainder after loan is repaid (for buy mode only)
+  let remainderAfterLoan = remainderValue;
+  let afterLoanText = '';
+  if (mode === 'buy' && form && form.monthlyRE) {
+    const housePrice = +form.housePrice.value;
+    const maintenanceRate = +document.getElementById('maintenanceCosts').value;
+    const monthlyMaintenance = housePrice * (maintenanceRate / 100) / 12;
+    remainderAfterLoan = (monthlyAllowance - monthlyMaintenance).toFixed(2);
+    afterLoanText = ` (After loan repaid: ${remainderAfterLoan})`;
+  }
+  
     remainderSection.innerHTML = `
     <div class="remainder-section">
       <div class="input-group calculated">
-        <label class="calculated-label">Remainder for Stocks/Bonds (€)</label>
+        <label class="calculated-label">Remainder for Stocks/Bonds</label>
         <div style="position: relative;">
           <input type="number" name="monthlyRemainder" value="${remainderValue}" readonly class="calculated-input">
-          <span class="input-tooltip">${tooltipText}</span>
+          <span class="input-tooltip">${tooltipText}${afterLoanText}</span>
         </div>
-        <span class="calculated-note">(calculated)</span>
-        <span class="tooltip">${tooltipText}</span>
+        <span class="calculated-note">(calculated)${afterLoanText}</span>
+        <span class="tooltip">${tooltipText}${afterLoanText}</span>
       </div>
       <div id="splitInputs${idx}" class="split-inputs"></div>
     </div>
@@ -1087,12 +1120,12 @@ function updateRemainderSection(idx, remainder, mode, monthlyAllowance) {
       <div class="split-input-group">
         <label>Stocks %</label>
         <input type="number" name="stocks" min="0" max="100" value="${stocksPct}">
-        <span class="nominal-value">${stocksVal} €</span>
+        <span class="nominal-value">${stocksVal}</span>
       </div>
       <div class="split-input-group">
         <label>Bonds %</label>
         <input type="number" name="bonds" value="${bondsPct}" readonly>
-        <span class="nominal-value">${bondsVal} €</span>
+        <span class="nominal-value">${bondsVal}</span>
       </div>
     `;
     
@@ -1103,8 +1136,8 @@ function updateRemainderSection(idx, remainder, mode, monthlyAllowance) {
       
       strategies[idx].splits.stocks = stocksPctNew;
       splitDiv.querySelector("[name='bonds']").value = bondsPctNew;
-      splitDiv.querySelector(".nominal-value").textContent = (remainder * stocksPctNew / 100).toFixed(2) + ' €';
-      splitDiv.querySelectorAll(".nominal-value")[1].textContent = (remainder * bondsPctNew / 100).toFixed(2) + ' €';
+      splitDiv.querySelector(".nominal-value").textContent = (remainder * stocksPctNew / 100).toFixed(2);
+      splitDiv.querySelectorAll(".nominal-value")[1].textContent = (remainder * bondsPctNew / 100).toFixed(2);
       
       runStrategySimulation(idx);
       updateNetWorthGraph();
@@ -1238,11 +1271,15 @@ function simulateStrategy(fixed, housePrice, initialDeposit, loanTerm, monthlyRE
   let realEstateValue = housePrice;
   let loanBalance = 0;
   let investedCash = 0;
+  let totalLoanRepayment = 0;
+  let remainingLoanRepayment = 0;
   
   if (housePrice > 0) {
     // Buy scenario
     investedCash = fixed.cashAtHand - initialDeposit;
     loanBalance = housePrice - initialDeposit + registrationTax;
+    totalLoanRepayment = monthlyRE * 12 * loanTerm;
+    remainingLoanRepayment = totalLoanRepayment;
   } else {
     // Rent scenario - all cash goes to investments
     investedCash = fixed.cashAtHand;
@@ -1265,23 +1302,35 @@ function simulateStrategy(fixed, housePrice, initialDeposit, loanTerm, monthlyRE
       penalty = loanBalance * (fixed.prepaymentPenalty/100);
     }
 
+    // Track monthly investment amount for this year
+    let monthlyInvestment = monthlyRemainder;
+
     if (y > 0) {
       if (realEstateValue > 0) {
         realEstateValue *= (1 + fixed.avgRealEstateReturn/100);
       }
 
-      // Calculate monthly investment amount
-      let monthlyInvestment = monthlyRemainder;
-
       // If loan is still active, amortize it
-      if (y <= loanTerm && loanBalance > 0) {
-        let monthlyLoanRate = (fixed.interestRate/100)/12;
-        let interestPaid = loanBalance * monthlyLoanRate * 12;
-        let principalPaid = Math.min(monthlyRE * 12 - interestPaid, loanBalance);
+      if (y < loanTerm && loanBalance > 0) {
+        // Calculate annual payments and interest
+        let totalAnnualPayment = monthlyRE * 12;
+        let annualInterest = loanBalance * (fixed.interestRate/100);
+        let principalPaid = Math.min(totalAnnualPayment - annualInterest, loanBalance);
+        
+        // Update loan tracking
         loanBalance -= principalPaid;
+        remainingLoanRepayment -= totalAnnualPayment;
+        
         if (loanBalance < 0) loanBalance = 0;
-      } else if (housePrice > 0) {
-        // Loan is paid off in buy scenario - redirect monthly loan payment to investments
+        if (remainingLoanRepayment < 0) remainingLoanRepayment = 0;
+      } else if (housePrice > 0 && loanBalance > 0) {
+        // Loan term has ended - set loan balance to 0 and redirect payments to investments
+        loanBalance = 0;
+        remainingLoanRepayment = 0;
+        monthlyInvestment += monthlyRE;
+      } else if (housePrice > 0 && loanBalance === 0) {
+        // Loan is already paid off - redirect monthly loan payment to investments
+        remainingLoanRepayment = 0;
         monthlyInvestment += monthlyRE;
       }
 
@@ -1306,12 +1355,14 @@ function simulateStrategy(fixed, housePrice, initialDeposit, loanTerm, monthlyRE
     let row = {
       year: y,
       realEstateValue,
+      monthlyInvestment,
       stockBalance,
       bondBalance,
       stockCostBasis,
       bondCostBasis,
       capitalGainsTax,
       loanBalance,
+      remainingLoanRepayment,
       penalty,
       maintenance: 0,
       netWorth
@@ -1326,11 +1377,13 @@ function renderStrategyTable(idx, rows) {
   let html = `<table class="ytab"><thead><tr>
     <th>Year</th>
     <th>Real Estate Value</th>
-    <th>Stock Balance</th>
+    <th>Stocks/Bonds Cash Injection</th>
+    <th>Stock Value</th>
     <th>Stocks Cost</th>
-    <th>Bond Balance</th>
+    <th>Bond Value</th>
     <th>Capital Gains Tax</th>
     <th>Loan Balance</th>
+    <th>Remaining Loan Repayment</th>
     <th>Prepayment Penalty</th>
     <th>Net Worth</th>
   </tr></thead><tbody>`;
@@ -1338,11 +1391,13 @@ function renderStrategyTable(idx, rows) {
     html += `<tr>
       <td>${r.year}</td>
       <td>${r.realEstateValue.toFixed(2)}<span class="tooltip">Real Estate Value = Previous × (1 + Real Estate Return)</span></td>
-      <td>${r.stockBalance.toFixed(2)}<span class="tooltip">Stock Balance = Previous × (1 + Stock Return) + Monthly Stock Investment × 12</span></td>
+      <td>${r.monthlyInvestment?.toFixed(2) || '0.00'}<span class="tooltip">Monthly amount available for stocks/bonds investment</span></td>
+      <td>${r.stockBalance.toFixed(2)}<span class="tooltip">Stock Value = Previous × (1 + Stock Return) + Monthly Stock Investment × 12</span></td>
       <td>${r.stockCostBasis?.toFixed(2) || '0.00'}<span class="tooltip">Stocks Cost = Total amount invested in stocks over time</span></td>
-      <td>${r.bondBalance.toFixed(2)}<span class="tooltip">Bond Balance = Previous × (1 + Bond Return) + Monthly Bond Investment × 12<br/>Treated as term deposit (no capital gains tax)</span></td>
-      <td>${r.capitalGainsTax?.toFixed(2) || '0.00'}<span class="tooltip">(Stocks Value - Stocks Cost) × Capital Gains Tax Rate<br/>(€${r.stockBalance?.toFixed(2) || '0.00'} - €${r.stockCostBasis?.toFixed(2) || '0.00'}) × ${document.getElementById('capitalGainsTax')?.value || '10'}%</span></td>
-      <td>${r.loanBalance.toFixed(2)}<span class="tooltip">Loan Balance = Previous - Monthly Payment</span></td>
+      <td>${r.bondBalance.toFixed(2)}<span class="tooltip">Bond Value = Previous × (1 + Bond Return) + Monthly Bond Investment × 12<br/>Treated as term deposit (no capital gains tax)</span></td>
+      <td>${r.capitalGainsTax?.toFixed(2) || '0.00'}<span class="tooltip">(Stock Value - Stocks Cost) × Capital Gains Tax Rate<br/>(${r.stockBalance?.toFixed(2) || '0.00'} - ${r.stockCostBasis?.toFixed(2) || '0.00'}) × ${document.getElementById('capitalGainsTax')?.value || '10'}%</span></td>
+      <td>${r.loanBalance.toFixed(2)}<span class="tooltip">Loan Balance = Remaining principal amount owed</span></td>
+      <td>${r.remainingLoanRepayment?.toFixed(2) || '0.00'}<span class="tooltip">Remaining Total Repayment = Total amount still to be paid over remaining loan term</span></td>
       <td>${r.penalty.toFixed(2)}<span class="tooltip">Prepayment Penalty = Remaining Loan × Penalty Rate (if not last year)</span></td>
       <td>${r.netWorth.toFixed(2)}<span class="tooltip">Net Worth = Real Estate + Stocks + Bonds - Loan Balance - Penalty - Capital Gains Tax (stocks only)</span></td>
     </tr>`;
@@ -1400,7 +1455,7 @@ function updateNetWorthGraph(changedIdx) {
       scales: {
         x: { title: { display: true, text: 'Year' } },
         y: {
-          title: { display: true, text: 'Net Worth (€)' },
+          title: { display: true, text: 'Net Worth' },
           beginAtZero: true,
           suggestedMin: 0,
           suggestedMax: Math.max(...datasets.flatMap(ds => ds.data.filter(v => v !== null))) * 1.1
