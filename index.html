@@ -111,9 +111,9 @@
         }
         .strategy-section.buy-rent { 
             background: #f8f8f8; 
-            height: 320px;
-            min-height: 320px;
-            max-height: 320px;
+            height: 340px;
+            min-height: 340px;
+            max-height: 340px;
         }
         .strategy-section.stocks-bonds { background: #f8f8ff; height: 170px; min-height: 170px; max-height: 170px; }
         .strategy-section.simulation { background: #f9f9f9; height: 340px; min-height: 340px; max-height: 340px; overflow: auto; }
@@ -879,6 +879,10 @@ function renderVerticalTabContent(idx, mode) {
             <label>Initial Deposit</label>
             <input type="number" name="initialDeposit" value="${strategyInput.initialDeposit || 80000}">
           </div>
+          <div class="input-group">
+            <label>Loan Term (years)</label>
+            <input type="number" name="loanTerm" value="${strategyInput.loanTerm || 25}">
+          </div>
           <div class="input-group calculated">
             <label class="calculated-label">Registration Costs</label>
             <div style="position: relative;">
@@ -889,17 +893,13 @@ function renderVerticalTabContent(idx, mode) {
             <span class="tooltip">Registration Costs = House Price × Registration Tax Rate</span>
           </div>
           <div class="input-group calculated">
-            <label class="calculated-label">Loan Balance at t=0</label>
+            <label class="calculated-label">Amount of Money to Borrow</label>
             <div style="position: relative;">
               <input type="number" name="loanBalance" value="324000" readonly class="calculated-input">
               <span class="input-tooltip">Loan Balance = House Price - Initial Deposit + Registration Costs</span>
             </div>
             <span class="calculated-note">(calculated)</span>
             <span class="tooltip">Loan Balance = House Price - Initial Deposit + Registration Costs</span>
-          </div>
-          <div class="input-group">
-            <label>Loan Term (years)</label>
-            <input type="number" name="loanTerm" value="${strategyInput.loanTerm || 25}">
           </div>
           <div class="input-group calculated">
             <label class="calculated-label">Monthly Loan Payment</label>
@@ -911,7 +911,7 @@ function renderVerticalTabContent(idx, mode) {
             <span class="tooltip">Monthly Payment = (Loan Balance × Monthly Interest Rate) / (1 - (1 + Monthly Interest Rate)^(-Loan Term × 12))</span>
           </div>
           <div class="input-group calculated">
-            <label class="calculated-label">Total Loan Repayment</label>
+            <label class="calculated-label">Sum of Cash Monthly Payments</label>
             <div style="position: relative;">
               <input type="number" name="totalLoanRepayment" value="0" readonly class="calculated-input">
               <span class="input-tooltip">Total Loan Repayment = Monthly Payment × 12 × Loan Term</span>
@@ -1382,8 +1382,7 @@ function renderStrategyTable(idx, rows) {
     <th>Stocks Cost</th>
     <th>Bond Value</th>
     <th>Capital Gains Tax</th>
-    <th>Loan Balance</th>
-    <th>Remaining Loan Repayment</th>
+    <th>Remaining Cash to Pay to Bank</th>
     <th>Prepayment Penalty</th>
     <th>Net Worth</th>
   </tr></thead><tbody>`;
@@ -1396,8 +1395,7 @@ function renderStrategyTable(idx, rows) {
       <td>${r.stockCostBasis?.toFixed(2) || '0.00'}<span class="tooltip">Stocks Cost = Total amount invested in stocks over time</span></td>
       <td>${r.bondBalance.toFixed(2)}<span class="tooltip">Bond Value = Previous × (1 + Bond Return) + Monthly Bond Investment × 12<br/>Treated as term deposit (no capital gains tax)</span></td>
       <td>${r.capitalGainsTax?.toFixed(2) || '0.00'}<span class="tooltip">(Stock Value - Stocks Cost) × Capital Gains Tax Rate<br/>(${r.stockBalance?.toFixed(2) || '0.00'} - ${r.stockCostBasis?.toFixed(2) || '0.00'}) × ${document.getElementById('capitalGainsTax')?.value || '10'}%</span></td>
-      <td>${r.loanBalance.toFixed(2)}<span class="tooltip">Loan Balance = Remaining principal amount owed</span></td>
-      <td>${r.remainingLoanRepayment?.toFixed(2) || '0.00'}<span class="tooltip">Remaining Total Repayment = Total amount still to be paid over remaining loan term</span></td>
+      <td>${r.remainingLoanRepayment?.toFixed(2) || '0.00'}<span class="tooltip">Remaining Cash to Pay to Bank = Total amount still to be paid over remaining loan term</span></td>
       <td>${r.penalty.toFixed(2)}<span class="tooltip">Prepayment Penalty = Remaining Loan × Penalty Rate (if not last year)</span></td>
       <td>${r.netWorth.toFixed(2)}<span class="tooltip">Net Worth = Real Estate + Stocks + Bonds - Loan Balance - Penalty - Capital Gains Tax (stocks only)</span></td>
     </tr>`;
