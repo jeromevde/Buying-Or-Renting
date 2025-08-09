@@ -1699,45 +1699,12 @@ function resetAllSettings() {
     localStorage.removeItem('financialSimulator_fixedVars');
     localStorage.removeItem('financialSimulator_strategies');
     
-    // Reset fixed variables to default values
-    document.getElementById('cashAtHand').value = '80000';
-    document.getElementById('interestRate').value = '3.0';
-    document.getElementById('monthlyAllowance').value = '1500';
-    document.getElementById('avgStockReturn').value = '8.0';
-    document.getElementById('avgRealEstateReturn').value = '3.0';
-    document.getElementById('avgBondReturn').value = '2.0';
-    document.getElementById('capitalGainsTax').value = '10.0';
-    document.getElementById('prepaymentPenalty').value = '1.0';
-    document.getElementById('registrationTax').value = '6.0';
-    document.getElementById('maintenanceCosts').value = '1.0';
-    document.getElementById('simulationYears').value = '15';
-    
-    // Reset strategies to default
-    strategies = [
-      { id: 1, name: 'Strategy 1', splits: { stocks: 80 } }
-    ];
-    strategyInputs = [
-      { id: 1, mode: 'buy', housePrice: 400000, initialDeposit: 80000, loanTerm: 25 }
-    ];
-    nextStrategyId = 2;
-    currentStrategyId = 1;
-    
-    // Re-render everything
-    renderTabButtons();
-    initializeAllStrategies();
-    
-    // Clear the chart
-    if (window.resultChart) {
-      window.resultChart.destroy();
-      window.resultChart = null;
-    }
-    
-    // Show success message
-    alert('✅ All settings have been reset to default values!');
+    // Force page reload to get clean initial state
+    window.location.reload();
     
   } catch (error) {
     console.error('Error resetting settings:', error);
-    alert('❌ Error occurred while resetting settings. Please refresh the page.');
+    alert('❌ Error occurred while resetting settings. Please refresh the page manually.');
   }
 }
 
