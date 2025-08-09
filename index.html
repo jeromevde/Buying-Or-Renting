@@ -448,7 +448,7 @@
             <div class="form-row"><label for="prepaymentPenalty">Prepayment Penalty (% of remaining loan)</label><input type="number" id="prepaymentPenalty" step="0.01" value="1.0"></div>
             <div class="form-row"><label for="registrationTax">Registration Tax (% of house price)</label><input type="number" id="registrationTax" step="0.01" value="6.0"></div>
             <div class="form-row"><label for="maintenanceCosts">Maintenance Costs (% of house price/year)</label><input type="number" id="maintenanceCosts" step="0.01" value="1.0"></div>
-            <div class="form-row"><label for="simulationYears">Simulation Years</label><input type="number" id="simulationYears" min="1" max="50" value="15"></div>
+            <div class="form-row"><label for="simulationYears">Simulation Years</label><input type="number" id="simulationYears" min="1" max="50" value="25"></div>
         </form>
         <button id="resetButton" style="background-color: #dc3545; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; margin-top: 10px; font-size: 14px;">
             🔄 Reset All Settings
@@ -494,10 +494,10 @@ let nextStrategyId = 3; // Start from 3 since we have 2 default strategies
 let strategyInputs = strategies.map((strategy, idx) => ({
   id: strategy.id,
   mode: idx === 0 ? 'buy' : 'rent',
-  housePrice: 300000,
+  housePrice: 320000,
   initialDeposit: 80000,
   loanTerm: 25,
-  monthlyRent: 1500,
+  monthlyRent: 1200,
   stocks: 90,
   bonds: 10,
   selectedTab: idx === 0 ? 'buy' : 'rent',
@@ -886,7 +886,7 @@ function renderVerticalTabContent(idx, mode) {
         <div class="form-inputs">
           <div class="input-group">
             <label>House Price</label>
-            <input type="number" name="housePrice" value="${strategyInput.housePrice || 300000}">
+            <input type="number" name="housePrice" value="${strategyInput.housePrice || 320000}">
           </div>
           <div class="input-group">
             <label>Initial Deposit</label>
@@ -960,7 +960,7 @@ function renderVerticalTabContent(idx, mode) {
         <div class="form-inputs">
           <div class="input-group">
             <label>Monthly Rent</label>
-            <input type="number" name="monthlyRent" value="${strategyInput.monthlyRent || 1500}">
+            <input type="number" name="monthlyRent" value="${strategyInput.monthlyRent || 1200}">
           </div>
         </div>
         <div id="monthlyAllowanceMsg${idx}" class="error-message"></div>
@@ -1176,8 +1176,10 @@ function addFixedVarListeners() {
         });
         updateNetWorthGraph();
       } else {
-        // Re-render current tab and update graph for other fixed variables
-        renderStrategyTab(currentStrategyId);
+        // For other fixed variables, re-run all strategy simulations
+        strategies.forEach((_, idx) => {
+          runStrategySimulation(idx, true);
+        });
         updateNetWorthGraph();
       }
       // Save state to cookies when fixed variables change
