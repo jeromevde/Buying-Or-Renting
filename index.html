@@ -2,18 +2,187 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=0.8, user-scalable=yes">
     <title> Investment Simulator</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 40px; font-size: 18px; }
-        .container { max-width: 1400px; margin: auto; display: flex; flex-direction: row; }
-        aside { width: 320px; min-width: 250px; margin-right: 40px; background: #f4f4f4; border-radius: 8px; padding: 24px 18px; }
+        body { font-family: Arial, sans-serif; margin: 20px; font-size: 18px; }
+        .container { max-width: 1400px; margin: auto; display: flex; flex-direction: row; gap: 20px; }
+        aside { width: 320px; min-width: 250px; background: #f4f4f4; border-radius: 8px; padding: 24px 18px; }
         main { flex: 1; min-width: 0; }
+        
+        /* Mobile-first responsive design */
+        @media (max-width: 768px) {
+            body { 
+                margin: 2px; 
+                font-size: 12px; 
+                overflow-x: hidden;
+            }
+            .container { 
+                flex-direction: column; 
+                gap: 5px;
+                padding: 0;
+                margin: 0;
+                width: 100vw;
+                max-width: 100vw;
+                box-sizing: border-box;
+            }
+            aside { 
+                width: calc(100vw - 16px); 
+                min-width: unset;
+                padding: 12px 8px;
+                margin: 4px 8px;
+                box-sizing: border-box;
+            }
+            main {
+                width: 100vw;
+                max-width: 100vw;
+                padding: 0;
+                margin: 0;
+                overflow-x: hidden;
+                box-sizing: border-box;
+            }
+            h1 { 
+                font-size: 16px; 
+                margin: 4px 0;
+                text-align: center;
+                padding: 0 4px;
+            }
+            h2 { 
+                font-size: 14px; 
+                margin: 4px 0;
+            }
+            label { 
+                min-width: 80px; 
+                font-size: 12px; 
+                text-align: right;
+                flex: 1;
+            }
+            input, select { 
+                width: 60px; 
+                padding: 2px; 
+                font-size: 12px; 
+                text-align: right;
+                flex-shrink: 0;
+            }
+            .form-row {
+                gap: 4px;
+                flex-wrap: wrap;
+                margin-bottom: 4px;
+                justify-content: flex-end;
+                align-items: center;
+            }
+            /* Make graph container responsive */
+            .graph-container {
+                width: 100vw;
+                max-width: 100vw;
+                margin: 5px 0;
+                padding: 4px 2px;
+                box-sizing: border-box;
+                overflow: hidden;
+                border: none;
+                border-radius: 0;
+            }
+            .graph-container canvas {
+                width: 100% !important;
+                max-width: 100% !important;
+                height: auto !important;
+                min-height: 280px;
+            }
+            /* Make tables mobile-friendly */
+            .ytab {
+                font-size: 8px;
+                display: block;
+                overflow-x: auto;
+                white-space: nowrap;
+                width: 100vw;
+                max-width: 100vw;
+                box-sizing: border-box;
+                margin: 0;
+            }
+            th, td {
+                padding: 1px 2px;
+                font-size: 8px;
+                white-space: nowrap;
+                min-width: 30px;
+            }
+            /* Tab buttons responsive */
+            .tab-buttons {
+                flex-wrap: wrap;
+                gap: 4px;
+                padding: 0 4px;
+            }
+            .tab-buttons button {
+                padding: 4px 8px;
+                font-size: 11px;
+                flex: 1;
+                min-width: 80px;
+                max-width: 120px;
+            }
+            /* Tab content adjustments */
+            .tab-content {
+                padding: 4px;
+                margin: 0;
+                overflow: hidden;
+                width: 100%;
+                max-width: 100%;
+                box-sizing: border-box;
+            }
+            /* Strategy content wrapper */
+            .strategy-content-wrapper {
+                width: 100%;
+                max-width: 100%;
+                overflow: hidden;
+                box-sizing: border-box;
+                margin: 0;
+            }
+            /* Make validation error messages mobile-friendly */
+            .error-message div {
+                font-size: 12px !important;
+                padding: 8px !important;
+            }
+            .error-message ul {
+                padding-left: 12px !important;
+            }
+            .error-message li {
+                font-size: 11px !important;
+                margin-bottom: 2px !important;
+            }
+        }
+        
+        /* Tablet styles */
+        @media (max-width: 1024px) and (min-width: 769px) {
+            body { margin: 15px; }
+            .container { gap: 15px; }
+            aside { width: 280px; }
+            .graph-container {
+                width: 100%;
+                overflow-x: auto;
+            }
+        }
         h1, h2 { text-align: center; }
         form, #fixedVarsForm { display: flex; flex-direction: column; gap: 12px; margin-bottom: 30px; }
-        .form-row { display: flex; align-items: center; gap: 10px; }
-        label { font-weight: bold; margin-bottom: 2px; min-width: 160px; font-size: 18px; }
-        input, select { width: 110px; padding: 8px; margin-top: 2px; font-size: 18px; }
+        .form-row { 
+            display: flex; 
+            align-items: center; 
+            gap: 10px; 
+            justify-content: flex-end;
+        }
+        label { 
+            font-weight: bold; 
+            margin-bottom: 2px; 
+            min-width: 160px; 
+            font-size: 18px; 
+            text-align: right;
+            flex: 1;
+        }
+        input, select { 
+            width: 110px; 
+            padding: 8px; 
+            margin-top: 2px; 
+            font-size: 18px; 
+            text-align: right;
+            flex-shrink: 0;
+        }
         .full-width { grid-column: 1 / span 2; }
         table { width: 100%; border-collapse: collapse; margin-top: 30px; }
         th, td { border: 1px solid #ccc; padding: 10px; text-align: right; font-size: 15px; }
@@ -89,6 +258,10 @@
         .tab-content { background: #f9f9f9; padding: 24px; border-radius: 6px; min-height: 120px; }
         
         /* Reset button styling */
+        #resetButton {
+            width: 100%;
+            margin-top: 10px;
+        }
         #resetButton:hover {
             background-color: #c82333 !important;
             transform: scale(1.02);
@@ -96,6 +269,14 @@
         }
         #resetButton:active {
             transform: scale(0.98);
+        }
+        
+        @media (max-width: 768px) {
+            #resetButton {
+                padding: 6px 8px;
+                font-size: 12px;
+                margin-top: 8px;
+            }
         }
         
         /* Strategy content wrapper for smooth transitions */
@@ -116,17 +297,160 @@
             display: flex;
             flex-direction: column;
             justify-content: flex-start;
-            min-width: 700px;
             padding: 0 32px;
         }
         .strategy-section.buy-rent { 
             background: #f8f8f8; 
-            height: 340px;
-            min-height: 340px;
-            max-height: 340px;
+            height: 400px;
+            min-height: 400px;
+            max-height: 400px;
         }
         .strategy-section.stocks-bonds { background: #f8f8ff; height: 170px; min-height: 170px; max-height: 170px; }
-        .strategy-section.simulation { background: #f9f9f9; height: 340px; min-height: 340px; max-height: 340px; overflow: auto; }
+        .strategy-section.simulation { 
+            background: #f9f9f9; 
+            height: 340px; 
+            min-height: 340px; 
+            max-height: 340px; 
+            overflow: auto; 
+        }
+        
+        @media (max-width: 768px) {
+            .strategy-section {
+                min-width: unset;
+                width: 100%;
+                max-width: 100%;
+                padding: 0 8px;
+                margin: 0 0 8px 0;
+                box-sizing: border-box;
+                border-radius: 4px;
+                height: auto;
+                min-height: 120px;
+                overflow: hidden;
+            }
+            .strategy-section h3 {
+                font-size: 14px;
+                margin: 4px 0;
+                padding-left: 4px;
+            }
+            .strategy-section.simulation { 
+                height: auto; 
+                min-height: 150px; 
+                max-height: 300px; 
+                overflow: auto;
+            }
+            .strategy-section.buy-rent {
+                height: 280px;
+                min-height: 280px;
+                max-height: 280px;
+                overflow: auto;
+            }
+            .strategy-section.stocks-bonds {
+                height: auto;
+                min-height: 100px;
+                max-height: 150px;
+                overflow: hidden;
+            }
+            /* Section content should be scrollable */
+            .section-content {
+                overflow-x: auto;
+                overflow-y: auto;
+                height: 100%;
+                max-height: calc(100% - 30px);
+            }
+            /* Make form inputs mobile friendly - 3 items per line */
+            .form-inputs,
+            .vertical-tab-content form > div:first-child {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 4px;
+                padding: 4px;
+                overflow-y: auto;
+                max-height: 180px;
+            }
+            .input-group {
+                min-width: unset;
+                flex: none;
+                display: flex;
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .input-group label {
+                font-size: 9px;
+                min-width: unset;
+                white-space: nowrap;
+                text-overflow: ellipsis;
+                overflow: hidden;
+                margin-bottom: 2px;
+            }
+            .input-group input {
+                width: 100%;
+                max-width: none;
+                font-size: 9px;
+                padding: 2px;
+                box-sizing: border-box;
+            }
+            .input-group.calculated {
+                min-width: unset;
+            }
+            .input-group.calculated input {
+                width: 100%;
+            }
+            .calculated-note {
+                font-size: 8px;
+                margin-top: 1px;
+            }
+            /* Vertical tabs mobile adjustments */
+            .vertical-tab-buttons {
+                padding-right: 6px;
+                margin-right: 6px;
+                flex: 0 0 auto;
+                min-width: 50px;
+            }
+            .vertical-tab-button {
+                padding: 4px 6px;
+                font-size: 10px;
+                white-space: nowrap;
+            }
+            .vertical-tab-content {
+                flex: 1;
+                min-width: 0;
+                overflow-y: auto;
+                max-height: 200px;
+            }
+            /* Remainder section mobile */
+            .remainder-section {
+                display: grid;
+                grid-template-columns: 1fr auto;
+                gap: 8px;
+                padding: 4px;
+                overflow-y: auto;
+                max-height: 100px;
+            }
+            .split-inputs {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 4px;
+            }
+            .split-input-group {
+                min-width: unset;
+                flex: none;
+                display: flex;
+                flex-direction: column;
+            }
+            .split-input-group label {
+                font-size: 9px;
+                white-space: nowrap;
+            }
+            .split-input-group input {
+                width: 100%;
+                font-size: 9px;
+                padding: 2px;
+                box-sizing: border-box;
+            }
+            .nominal-value {
+                font-size: 8px;
+            }
+        }
         
         .strategy-section h3 {
             margin: 10px 0 8px 0;
@@ -288,6 +612,26 @@
             background: #fff;
             padding: 20px;
             position: relative;
+            box-sizing: border-box;
+        }
+        
+        @media (max-width: 768px) {
+            .graph-container {
+                width: 100vw;
+                max-width: 100vw;
+                margin: 5px 0;
+                padding: 4px 2px;
+                height: 280px;
+                border: none;
+                border-radius: 0;
+                box-sizing: border-box;
+                overflow: hidden;
+            }
+            #resetButton {
+                padding: 6px 8px;
+                font-size: 12px;
+                margin-top: 8px;
+            }
         }
         
         /* Simulation controls */
