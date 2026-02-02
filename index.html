@@ -1875,7 +1875,7 @@ function simulateStrategy(fixed, housePrice, initialDeposit, loanTerm, monthlyRE
       }
 
       // If loan is still active, amortize it
-      if (y < loanTerm && loanBalance > 0) {
+      if (y <= loanTerm && loanBalance > 0) {
         // Calculate annual payments and interest
         let totalAnnualPayment = monthlyRE * 12;
         let annualInterest = loanBalance * (fixed.interestRate/100);
