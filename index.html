@@ -1862,7 +1862,7 @@ function simulateStrategy(fixed, housePrice, initialDeposit, loanTerm, monthlyRE
 
   for (let y = 0; y <= simulationYears; y++) {
     let penalty = 0;
-    if (loanBalance > 0 && y < loanTerm) {
+    if (loanBalance > 0 && y <= loanTerm) {
       penalty = loanBalance * (fixed.prepaymentPenalty/100);
     }
 
